@@ -3,8 +3,10 @@ package unimelb.bitbox.util;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.RandomAccessFile;
 import java.nio.ByteBuffer;
+import java.nio.channels.Channels;
 import java.nio.channels.FileChannel;
 import java.nio.channels.FileLock;
 import java.nio.file.CopyOption;
@@ -47,7 +49,8 @@ import java.util.logging.Logger;
  * <li>{@link #makeDirectory(String)}</li>
  * <li>{@link #modifyFileLoader(String, String, long)}</li>
  * <li>{@link #writeFile(String, ByteBuffer, long)}</li>
- * @author aaron
+ * @author Aaron Harwood
+ * @author Andrew Linxi Wang (contributions to Windows compatibility)
  */
 public class FileSystemManager extends Thread {
 	private static Logger log = Logger.getLogger(FileSystemManager.class.getName());
@@ -160,6 +163,15 @@ public class FileSystemManager extends Thread {
 		public String toString() {
 			return event.name()+" " +pathName;
 		}
+
+		public Document fileReqToDoc() { //request(s) only from fileManager
+			Document filReqDoc = new Document();
+			Document filDescriDoc = this.fileDescriptor.toDoc();
+			filReqDoc.append("command", this.event.toString());
+			filReqDoc.append("fileDescriptor", filDescriDoc);
+			filReqDoc.append("pathName", this.pathName);
+			return filReqDoc;
+		}
 	}
 	
 	/**
@@ -247,6 +259,7 @@ public class FileSystemManager extends Thread {
 	   * there was an IO error accessing the file system.
 	   */
 	public boolean isSafePathName(String pathName) {
+		pathName=separatorsToSystem(pathName);
 		File file = new File(root+FileSystems.getDefault().getSeparator()+pathName);
 		String cannonicalName;
 		try {
@@ -269,6 +282,7 @@ public class FileSystemManager extends Thread {
 	   * @return boolean True if the directory exists.
 	   */
 	public boolean dirNameExists(String pathName) {
+		pathName=separatorsToSystem(pathName);
 		synchronized(this) {
 			return watchedDirectories.contains(root+FileSystems.getDefault().getSeparator()+pathName);
 		}
@@ -283,6 +297,7 @@ public class FileSystemManager extends Thread {
 	   * @return boolean True if directory was successfully made.
 	   */
 	public boolean makeDirectory(String pathName) {
+		pathName=separatorsToSystem(pathName);
 		synchronized(this) {
 			File file = new File(root+FileSystems.getDefault().getSeparator()+pathName);
 			return file.mkdir();
@@ -297,6 +312,7 @@ public class FileSystemManager extends Thread {
 	   * @return boolean True if the directory was successfully deleted.
 	   */
 	public boolean deleteDirectory(String pathName) {
+		pathName=separatorsToSystem(pathName);
 		synchronized(this) {
 			File file = new File(root+FileSystems.getDefault().getSeparator()+pathName);
 			if(file.isDirectory()) {
@@ -317,6 +333,7 @@ public class FileSystemManager extends Thread {
 	   *  currently loading, returns true.
 	   */
 	public boolean fileNameExists(String pathName) {
+		pathName=separatorsToSystem(pathName);
 		synchronized(this) {
 			return watchedFiles.containsKey(root+FileSystems.getDefault().getSeparator()+pathName);
 		}
@@ -333,6 +350,7 @@ public class FileSystemManager extends Thread {
 	   *  currently loading, returns true against the existing file.
 	 */
 	public boolean fileNameExists(String pathName, String md5) {
+		pathName=separatorsToSystem(pathName);
 		synchronized(this) {
 			String fullPathName=root+FileSystems.getDefault().getSeparator()+pathName;
 			return watchedFiles.containsKey(fullPathName) &&
@@ -350,6 +368,7 @@ public class FileSystemManager extends Thread {
 	   * @return boolean True if the file was deleted.
 	   */
 	public boolean deleteFile(String pathName, long lastModified, String md5) {
+		pathName=separatorsToSystem(pathName);
 		synchronized(this) {
 			String fullPathName=root+FileSystems.getDefault().getSeparator()+pathName;
 			if(watchedFiles.containsKey(fullPathName) && (watchedFiles.get(fullPathName).lastModified<=lastModified||
@@ -381,6 +400,7 @@ public class FileSystemManager extends Thread {
 	   * @throws NoSuchAlgorithmException if the MD5 hash algorithm is not available.
 	   */
 	public boolean createFileLoader(String pathName, String md5, long length, long lastModified) throws NoSuchAlgorithmException, IOException {
+		pathName=separatorsToSystem(pathName);
 		synchronized(this) {
 			String fullPathName=root+FileSystems.getDefault().getSeparator()+pathName;
 			if(watchedFiles.containsKey(fullPathName)) return false;
@@ -401,6 +421,7 @@ public class FileSystemManager extends Thread {
 	 * @throws IOException If there was an error writing the bytes.
 	 */
 	public boolean writeFile(String pathName, ByteBuffer src, long position) throws IOException {
+		pathName=separatorsToSystem(pathName);
 		synchronized(this) {
 			String fullPathName=root+FileSystems.getDefault().getSeparator()+pathName;
 			if(!loadingFiles.containsKey(fullPathName)) return false;
@@ -466,6 +487,7 @@ public class FileSystemManager extends Thread {
 	 * @throws IOException If there was a problem accessing the file system, the loader is no longer available in this case.
 	 */
 	public boolean checkWriteComplete(String pathName) throws NoSuchAlgorithmException, IOException {
+		pathName=separatorsToSystem(pathName);
 		synchronized(this) {
 			String fullPathName=root+FileSystems.getDefault().getSeparator()+pathName;
 			if(!loadingFiles.containsKey(fullPathName)) return false;
@@ -498,6 +520,7 @@ public class FileSystemManager extends Thread {
 	 * @throws IOException If there were any errors accessing the file system, the loader is no longer available in this case.
 	 */
 	public boolean checkShortcut(String pathName) throws NoSuchAlgorithmException, IOException {
+		pathName=separatorsToSystem(pathName);
 		synchronized(this) {
 			String fullPathName=root+FileSystems.getDefault().getSeparator()+pathName;
 			if(!loadingFiles.containsKey(fullPathName)) return false;
@@ -530,6 +553,7 @@ public class FileSystemManager extends Thread {
 	 * @throws IOException If there were any errors accessing the file system. 
 	 */
 	public boolean modifyFileLoader(String pathName, String md5, long lastModified) throws IOException {
+		pathName=separatorsToSystem(pathName);
 		synchronized(this) {
 			String fullPathName=root+FileSystems.getDefault().getSeparator()+pathName;
 			if(loadingFiles.containsKey(fullPathName)) return false;
@@ -550,6 +574,7 @@ public class FileSystemManager extends Thread {
 	 * @throws IOException if there was a problem accessing the file system, the loader is no longer available in this case.
 	 */
 	public boolean cancelFileLoader(String pathName) throws IOException {
+		pathName=separatorsToSystem(pathName);
 		synchronized(this) {
 			String fullPathName=root+FileSystems.getDefault().getSeparator()+pathName;
 			if(loadingFiles.containsKey(fullPathName)) {
@@ -585,6 +610,11 @@ public class FileSystemManager extends Thread {
 				File file = new File(pathname);
 				pathevents.add(new FileSystemEvent(file.getParent(),file.getName(),EVENT.DIRECTORY_CREATE));
 			}
+			Collections.sort(pathevents,(arg0,arg1) ->
+				{
+					return arg0.path.length()-arg1.path.length();	
+				}
+			);
 			keys = new ArrayList<String>(watchedFiles.keySet());
 			for(String pathname : keys) {
 				File file = new File(pathname);
@@ -627,37 +657,39 @@ public class FileSystemManager extends Thread {
 			raf.close();
 			return file.delete();
 		}
+		
 		public boolean checkShortcut() throws NoSuchAlgorithmException, IOException {
 			// check for a shortcut
 			boolean success=false;
 			if(hashMap.containsKey(md5)) {
 				for(String attempt: hashMap.get(md5)) {
-					
+					RandomAccessFile raf2 = null;
+					FileChannel channel2 = null;
+					FileLock lock2 = null;
 					try {
 						File file = new File(attempt);
-						RandomAccessFile raf = new RandomAccessFile(file, "rw");
-						FileChannel channel = raf.getChannel();
-						FileLock lock = channel.lock();
+						raf2 = new RandomAccessFile(file, "rw");
+						channel2 = raf2.getChannel();
+						lock2 = channel2.lock();
 						String currentMd5 = hashFile(file,attempt,watchedFiles.get(attempt).lastModified);
 						if(currentMd5.equals(md5)) {
-							Path src = Paths.get(attempt);
 							Path dest = Paths.get(pathName);
 							CopyOption[] options = new CopyOption[]{
 							          StandardCopyOption.REPLACE_EXISTING
-							}; 
-							Files.copy(src, dest, options);
+							};
+							InputStream is = Channels.newInputStream(channel2);
+							Files.copy(is, dest, options);
 				    		dest.toFile().setLastModified(lastModified);
 							success=true;
-							lock.release();
-							channel.close();
-							raf.close();
 							break;
 						}
-						lock.release();
-						channel.close();
-						raf.close();
 					} catch (IOException e) {
-						// try another one
+						e.printStackTrace(); // try another one
+					}
+					finally {
+						if (lock2 != null) lock2.release();
+						if (channel2 != null) channel2.close();
+						if (raf2 != null) raf2.close();
 					}
 				}
 			}
@@ -674,7 +706,7 @@ public class FileSystemManager extends Thread {
 			channel.write(src, position);
 		}
 		public boolean checkWriteComplete() throws NoSuchAlgorithmException, IOException {
-			String currentMd5 = hashFile(file,pathName,0);
+			String currentMd5 = hashFile(file,pathName,0,raf);
 			if(currentMd5.equals(md5)) {
 				lock.release();
 				channel.close();
@@ -777,15 +809,27 @@ public class FileSystemManager extends Thread {
 		return checksum;
 	}
 	
+	private String hashFile(File file,String name,long lastModified, RandomAccessFile raf) throws NoSuchAlgorithmException, IOException {
+		log.info("hashing file "+name);
+		if(lastModified!=0 && lastModified==file.lastModified()) {
+			return watchedFiles.get(name).md5;
+		}
+		MessageDigest md5Digest = MessageDigest.getInstance("MD5");
+		String checksum = getFileChecksum(md5Digest, raf);
+		return checksum;
+	}
+	
 	private ArrayList<FileSystemEvent> scanDirectoryTree(String name) throws IOException, NoSuchAlgorithmException {
 		ArrayList<FileSystemEvent> pathEvents = new ArrayList<FileSystemEvent>();
 		if(name.endsWith(loadingSuffix)) return pathEvents;
 		File file = new File(name);
+		//System.out.println("---name:"+name);
 		if(file.isFile()) {
 			long lastModified = file.lastModified();
 			long fileSize = file.length();
 			if(watchedFiles.containsKey(name)) {
-				if(lastModified!=watchedFiles.get(name).lastModified) {
+				if(lastModified!=watchedFiles.get(name).lastModified) { //File modify event
+
 					String newHash = hashFile(file,name,0);
 					modifyFile(name,newHash,lastModified,fileSize);
 					FileSystemEvent pe = new FileSystemEvent(file.getParent(),file.getName(),EVENT.FILE_MODIFY,watchedFiles.get(name));
@@ -793,7 +837,7 @@ public class FileSystemManager extends Thread {
 				} else {
 					// do nothing
 				}
-			} else {
+			} else { //file create event
 				String newHash = hashFile(file,name,0);
 				addFile(name,new FileDescriptor(lastModified,newHash,fileSize));
 				FileSystemEvent pe = new FileSystemEvent(file.getParent(),file.getName(),EVENT.FILE_CREATE,watchedFiles.get(name));
@@ -803,15 +847,20 @@ public class FileSystemManager extends Thread {
 			Path path = Paths.get(name);
 			if(watchedDirectories.contains(name) || name.equals(root)) {
 				// do nothing
-			} else {
+			} else {  //create dir event
 				addDir(name);
 				pathEvents.add(new FileSystemEvent(file.getParent(),file.getName(),EVENT.DIRECTORY_CREATE));
 			}
+			//if there are files under the new dir, then adding all the events
 			DirectoryStream<Path> stream = Files.newDirectoryStream(path);
 		    for (Path subpath: stream) {
 		    	pathEvents.addAll(scanDirectoryTree(subpath.toString()));
 		    }
+		    stream.close();
 		}
+		//System.out.println("file system event list:" + pathEvents);
+		if(!pathEvents.isEmpty())
+		    System.out.println(pathEvents.get(0).fileReqToDoc().toJson());
 		return pathEvents;
 	}
 	
@@ -829,6 +878,7 @@ public class FileSystemManager extends Thread {
 	}
 	
 	private void modifyFile(String name, String md5, long lastModified, long fileSize) {
+		System.out.println("---modifing");
 		log.info("modified file "+name);
 		removeHash(name);
 		watchedFiles.get(name).md5=md5;
@@ -859,9 +909,26 @@ public class FileSystemManager extends Thread {
 		watchedDirectories.add(name);
 	}
 	
+	private static String getFileChecksum(MessageDigest digest, RandomAccessFile fis) throws IOException
+	{
+	    byte[] byteArray = new byte[1024];
+	    int bytesCount = 0;
+	    fis.seek(0);
+	    while ((bytesCount = fis.read(byteArray)) != -1) {
+	        digest.update(byteArray, 0, bytesCount);
+	    };
+	    byte[] bytes = digest.digest();
+	    StringBuilder sb = new StringBuilder();
+	    for(int i=0; i< bytes.length ;i++)
+	    {
+	        sb.append(Integer.toString((bytes[i] & 0xff) + 0x100, 16).substring(1));
+	    }
+	   return sb.toString();
+	}
+	
 	private static String getFileChecksum(MessageDigest digest, File file) throws IOException
 	{
-	    FileInputStream fis = new FileInputStream(file);
+		FileInputStream fis = new FileInputStream(file);
 	    byte[] byteArray = new byte[1024];
 	    int bytesCount = 0;
 	    while ((bytesCount = fis.read(byteArray)) != -1) {
@@ -875,5 +942,16 @@ public class FileSystemManager extends Thread {
 	        sb.append(Integer.toString((bytes[i] & 0xff) + 0x100, 16).substring(1));
 	    }
 	   return sb.toString();
+	}
+	
+	private static String separatorsToSystem(String res) {
+	    if (res==null) return null;
+	    if (File.separatorChar=='\\') {
+	        // From Windows to Linux/Mac
+	        return res.replace('/', File.separatorChar);
+	    } else {
+	        // From Linux/Mac to Windows
+	        return res.replace('\\', File.separatorChar);
+	    }
 	}
 }

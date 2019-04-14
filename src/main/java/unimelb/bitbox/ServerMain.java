@@ -29,7 +29,7 @@ public class ServerMain implements FileSystemObserver, Runnable {
 	}
 
 	public ServerMain() throws NumberFormatException, IOException, NoSuchAlgorithmException {
-		//fileSystemManager=new FileSystemManager(Configuration.getConfigurationValue("path"),this);
+		fileSystemManager=new FileSystemManager(Configuration.getConfigurationValue("path"),this);
 	}
 
 	public void startServer(){
