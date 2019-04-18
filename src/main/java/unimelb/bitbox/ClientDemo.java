@@ -1,24 +1,26 @@
 package unimelb.bitbox;
 
+import unimelb.bitbox.util.FileSystemManager;
+import unimelb.bitbox.util.FileSystemObserver;
+
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import java.nio.channels.SocketChannel;
 
-public class ClientDemo implements Server {
-    public static void main(String[] args) throws IOException {
-        new ClientDemo().startServer(9999);
-    }
+public class ClientDemo implements FileSystemObserver {
+//    public static void main(String[] args) throws IOException {
+//        new ClientDemo().startServer();
+//    }
 
     /**
      * start the client
      *
-     * @param serverPort
+     *
      * @throws IOException
      */
-    @Override
-    public void startServer(int serverPort) throws IOException {
-        try (SocketChannel channel = SocketChannel.open(new InetSocketAddress("localhost", 9999))) {
+    public void startServer(String ip, int port) throws IOException {
+        try (SocketChannel channel = SocketChannel.open(new InetSocketAddress(ip, port))) {
             ByteBuffer buffer = ByteBuffer.allocate(1024);
             buffer.clear();
             buffer.put("Message from client：“Hello server!”".getBytes());
@@ -31,5 +33,10 @@ public class ClientDemo implements Server {
                 e.printStackTrace();
             }
         }
+    }
+
+    @Override
+    public void processFileSystemEvent(FileSystemManager.FileSystemEvent fileSystemEvent) {
+
     }
 }

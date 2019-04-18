@@ -1,5 +1,9 @@
 package unimelb.bitbox;
 
+import unimelb.bitbox.util.Configuration;
+import unimelb.bitbox.util.FileSystemManager;
+import unimelb.bitbox.util.FileSystemObserver;
+
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
@@ -7,22 +11,32 @@ import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
+import java.security.NoSuchAlgorithmException;
 import java.util.Iterator;
+import java.util.logging.Logger;
 
-public class ServerDemo implements Server {
-    public static void main(String[] args) throws IOException {
-        ServerDemo server = new ServerDemo();
-        server.startServer(9999);
+public class ServerDemo implements FileSystemObserver, Runnable {
+//    public static void main(String[] args) throws IOException {
+//        ServerDemo server = new ServerDemo();
+//        server.startServer(9999);
+//    }
+    private static Logger log = Logger.getLogger(ServerMain.class.getName());
+    protected FileSystemManager fileSystemManager;
+    private static int counter = 0;
+
+    public ServerDemo() throws NumberFormatException, IOException, NoSuchAlgorithmException {
+        fileSystemManager=new FileSystemManager(Configuration.getConfigurationValue("path"),this);
     }
 
     /**
      * start the server
      *
-     * @param serverPort
+     *
      */
-    @Override
-    public void startServer(int serverPort) throws IOException {
+    public void startServer() {
         //open the server channel
+        int serverPort = Integer.parseInt(Configuration.getConfigurationValue("port"));
+
         try (ServerSocketChannel server = ServerSocketChannel.open()) {
             //bind the server port
             server.socket().bind(new InetSocketAddress(serverPort));
@@ -52,6 +66,8 @@ public class ServerDemo implements Server {
                 }
 
             }
+        } catch (IOException e) {
+            e.printStackTrace();
         }
     }
 
@@ -98,5 +114,15 @@ public class ServerDemo implements Server {
             channel.register(key.selector(), SelectionKey.OP_READ, buffer);
         }
         return mes;
+    }
+
+    @Override
+    public void run() {
+        startServer();
+    }
+
+    @Override
+    public void processFileSystemEvent(FileSystemManager.FileSystemEvent fileSystemEvent) {
+
     }
 }

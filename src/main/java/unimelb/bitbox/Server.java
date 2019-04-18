@@ -7,8 +7,8 @@ public interface Server {
 
     /**
      *
-     * @param serverPort
+     *
      * @throws IOException
      */
-    void startServer(int serverPort) throws IOException;
+    void startServer() throws IOException;
 }
