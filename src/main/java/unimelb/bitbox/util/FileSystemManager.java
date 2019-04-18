@@ -223,8 +223,8 @@ public class FileSystemManager extends Thread {
 	 * @throws IOException Thrown if an initial scan of the share directory fails.
 	 * @throws NoSuchAlgorithmException Thrown if the MD5 hash algorithm is not available.
 	 */
-	public FileSystemManager(String root, FileSystemObserver fileSystemObserver) throws IOException, NoSuchAlgorithmException{
-		this.fileSystemObserver=fileSystemObserver;
+	public FileSystemManager(String root) throws IOException, NoSuchAlgorithmException{//FileSystemObserver fileSystemObserver)
+		//this.fileSystemObserver=fileSystemObserver;
 		this.root=root;
 		watchedFiles=new HashMap<String,FileDescriptor>();
 		loadingFiles=new HashMap<String,FileLoader>();
