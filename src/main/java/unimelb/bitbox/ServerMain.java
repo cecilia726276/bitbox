@@ -1,6 +1,7 @@
 package unimelb.bitbox;
 
 import unimelb.bitbox.util.Configuration;
+import unimelb.bitbox.util.Document;
 import unimelb.bitbox.util.FileSystemManager;
 import unimelb.bitbox.util.FileSystemManager.FileSystemEvent;
 import unimelb.bitbox.util.FileSystemObserver;
@@ -91,9 +92,19 @@ public class ServerMain implements FileSystemObserver, Runnable {
 	{
 		//start a TCP server of a peer
 		//set port number according to the information in "configuration.properties"
-		startServer();
+		//startServer();
 		// TODO: process events
+		//convert the system events to json object
+		Document doc = fileReqToDoc(fileSystemEvent);
 
+	}
+	private Document fileReqToDoc(FileSystemEvent fileSystemEvent) { //request(s) only from fileManager
+		Document filReqDoc = new Document();
+		Document filDescriDoc = fileSystemEvent.fileDescriptor.toDoc();
+		filReqDoc.append("command", fileSystemEvent.event.toString());
+		filReqDoc.append("fileDescriptor", filDescriDoc);
+		filReqDoc.append("pathName", fileSystemEvent.pathName);
+		return filReqDoc;
 	}
 	
 }

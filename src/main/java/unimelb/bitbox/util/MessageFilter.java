@@ -9,10 +9,6 @@ import java.util.ArrayList;
 //the purpose of this class is to link particular json string to correspond function
 public class MessageFilter {
     public String command;
-    public ArrayList<Peerinfo> peers;
-    public String message;
-    public FileSystemManager.FileSystemEvent systemEvent;
-    public boolean status;
 
     private FileSystemManager.FileDescriptor fileDescriptorExtraction(Document doc)throws IOException, NoSuchAlgorithmException
     {

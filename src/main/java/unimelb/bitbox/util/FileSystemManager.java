@@ -164,14 +164,7 @@ public class FileSystemManager extends Thread {
 			return event.name()+" " +pathName;
 		}
 
-		public Document fileReqToDoc() { //request(s) only from fileManager
-			Document filReqDoc = new Document();
-			Document filDescriDoc = this.fileDescriptor.toDoc();
-			filReqDoc.append("command", this.event.toString());
-			filReqDoc.append("fileDescriptor", filDescriDoc);
-			filReqDoc.append("pathName", this.pathName);
-			return filReqDoc;
-		}
+
 	}
 	
 	/**
@@ -223,7 +216,7 @@ public class FileSystemManager extends Thread {
 	 * @throws IOException Thrown if an initial scan of the share directory fails.
 	 * @throws NoSuchAlgorithmException Thrown if the MD5 hash algorithm is not available.
 	 */
-	public FileSystemManager(String root) throws IOException, NoSuchAlgorithmException{//FileSystemObserver fileSystemObserver)
+	public FileSystemManager(String root, FileSystemObserver fileSystemObserver) throws IOException, NoSuchAlgorithmException{
 		//this.fileSystemObserver=fileSystemObserver;
 		this.root=root;
 		watchedFiles=new HashMap<String,FileDescriptor>();
