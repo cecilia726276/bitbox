@@ -1,5 +1,7 @@
 package unimelb.bitbox;
 
+import unimelb.bitbox.draft.ClientDemo;
+import unimelb.bitbox.draft.ServerDemo;
 import unimelb.bitbox.util.Configuration;
 
 import java.io.IOException;

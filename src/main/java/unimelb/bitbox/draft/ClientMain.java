@@ -1,4 +1,4 @@
-package unimelb.bitbox;
+package unimelb.bitbox.draft;
 
 import java.io.DataInputStream;
 import java.io.DataOutputStream;

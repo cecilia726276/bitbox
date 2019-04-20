@@ -6,6 +6,7 @@ import unimelb.bitbox.util.FileSystemManager;
 import unimelb.bitbox.util.FileSystemManager.FileSystemEvent;
 import unimelb.bitbox.util.FileSystemObserver;
 
+import javax.net.ServerSocketFactory;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
@@ -13,10 +14,6 @@ import java.net.ServerSocket;
 import java.net.Socket;
 import java.security.NoSuchAlgorithmException;
 import java.util.logging.Logger;
-import javax.net.ServerSocketFactory;
-import org.json.simple.JSONObject;
-import org.json.simple.parser.JSONParser;
-import org.json.simple.parser.ParseException;
 
 public class ServerMain implements FileSystemObserver, Runnable {
 	private static Logger log = Logger.getLogger(ServerMain.class.getName());
@@ -91,7 +88,7 @@ public class ServerMain implements FileSystemObserver, Runnable {
 	public void processFileSystemEvent(FileSystemEvent fileSystemEvent)
 	{
 		//start a TCP server of a peer
-		//set port number according to the information in "configuration.properties"
+		//set port number according to the information in "configuration.properties "
 		//startServer();
 		// TODO: process events
 		//convert the system events to json object
@@ -106,5 +103,4 @@ public class ServerMain implements FileSystemObserver, Runnable {
 		filReqDoc.append("pathName", fileSystemEvent.pathName);
 		return filReqDoc;
 	}
-	
 }

@@ -1,5 +1,6 @@
-package unimelb.bitbox;
+package unimelb.bitbox.draft;
 
+import unimelb.bitbox.ServerMain;
 import unimelb.bitbox.util.Configuration;
 import unimelb.bitbox.util.FileSystemManager;
 import unimelb.bitbox.util.FileSystemObserver;
@@ -109,6 +110,7 @@ public class ServerDemo implements FileSystemObserver, Runnable {
             // we need to switch the buffer from writing mode into reading mode using the flip() method call.
             buffer.flip();
             //read the content
+
             mes = Coder.INSTANCE.getDecoder().decode(buffer).toString();
             buffer.clear();
             channel.register(key.selector(), SelectionKey.OP_READ, buffer);

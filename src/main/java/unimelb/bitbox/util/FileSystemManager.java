@@ -216,8 +216,8 @@ public class FileSystemManager extends Thread {
 	 * @throws IOException Thrown if an initial scan of the share directory fails.
 	 * @throws NoSuchAlgorithmException Thrown if the MD5 hash algorithm is not available.
 	 */
-	public FileSystemManager(String root, FileSystemObserver fileSystemObserver) throws IOException, NoSuchAlgorithmException{
-		//this.fileSystemObserver=fileSystemObserver;
+	public FileSystemManager(String root, FileSystemObserver fileSystemObserver) throws IOException, NoSuchAlgorithmException{//FileSystemObserver fileSystemObserver)
+		this.fileSystemObserver=fileSystemObserver;
 		this.root=root;
 		watchedFiles=new HashMap<String,FileDescriptor>();
 		loadingFiles=new HashMap<String,FileLoader>();
@@ -265,7 +265,7 @@ public class FileSystemManager extends Thread {
 		return cannonicalName.startsWith(cannonicalRoot+FileSystems.getDefault().getSeparator()) &&
 				cannonicalName.length()>cannonicalRoot.length()+1;
 	}
-	
+
 	// directories
 	
 	/**
@@ -852,8 +852,8 @@ public class FileSystemManager extends Thread {
 		    stream.close();
 		}
 		//System.out.println("file system event list:" + pathEvents);
-		if(!pathEvents.isEmpty())
-		    System.out.println(pathEvents.get(0).fileReqToDoc().toJson());
+//		if(!pathEvents.isEmpty())
+//		    System.out.println(pathEvents.get(0).fileReqToDoc().toJson());
 		return pathEvents;
 	}
 	
@@ -871,7 +871,7 @@ public class FileSystemManager extends Thread {
 	}
 	
 	private void modifyFile(String name, String md5, long lastModified, long fileSize) {
-		System.out.println("---modifing");
+//		System.out.println("---modifing");
 		log.info("modified file "+name);
 		removeHash(name);
 		watchedFiles.get(name).md5=md5;

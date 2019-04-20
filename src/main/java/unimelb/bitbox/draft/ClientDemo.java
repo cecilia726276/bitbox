@@ -1,4 +1,4 @@
-package unimelb.bitbox;
+package unimelb.bitbox.draft;
 
 import unimelb.bitbox.util.FileSystemManager;
 import unimelb.bitbox.util.FileSystemObserver;

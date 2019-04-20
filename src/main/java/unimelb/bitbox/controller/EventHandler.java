@@ -1,6 +1,6 @@
 package unimelb.bitbox.controller;
 
-import unimelb.bitbox.Coder;
+import unimelb.bitbox.draft.Coder;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;

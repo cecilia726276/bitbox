@@ -1,11 +1,5 @@
 package unimelb.bitbox.controller;
 
-import unimelb.bitbox.Server;
-import unimelb.bitbox.ServerDemo;
-
-import java.io.IOException;
-import java.security.NoSuchAlgorithmException;
-
 public class TestServer {
 
     public static void main(String args[]) {
