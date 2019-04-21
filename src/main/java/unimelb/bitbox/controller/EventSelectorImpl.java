@@ -13,11 +13,10 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 public class EventSelectorImpl implements EventSelector {
-    public boolean serverStatus = false;
     public Selector selector;
     private ExecutorService fixedThreadPool;
     private static EventSelectorImpl eventSelector = null;
-    public Map<SelectionKey, Boolean> handingMap;
+    public static Map<SelectionKey, Boolean> handingMap;
 
     public static EventSelectorImpl getInstance() {
         if (eventSelector == null) {
@@ -29,6 +28,11 @@ public class EventSelectorImpl implements EventSelector {
         }
         return eventSelector;
     }
+
+    public Selector getSelector() {
+        return selector;
+    }
+
     private EventSelectorImpl() {
         fixedThreadPool = Executors.newFixedThreadPool(4);
         try {
@@ -73,7 +77,8 @@ public class EventSelectorImpl implements EventSelector {
 
         int numberOfPrepared = 0;
         while (true) {
-
+//            Client client = new ClientImpl();
+//            client.sendRequest("hahahahah", "localhost", 8111);
             // select prepared selector
             try {
                 numberOfPrepared = selector.select();
@@ -81,9 +86,10 @@ public class EventSelectorImpl implements EventSelector {
                 e.printStackTrace();
             }
 
+
+//            System.out.println(numberOfPrepared);
             if (numberOfPrepared > 0) {
                 int i = 0;
-                System.out.println("NP:"+numberOfPrepared);
                 Set selectedKeys = selector.selectedKeys();
                 Iterator keyIterator = selectedKeys.iterator();
                 while (keyIterator.hasNext()) {
@@ -98,7 +104,6 @@ public class EventSelectorImpl implements EventSelector {
 //                    key.cancel();
 //                    eventHandler.run();
                     fixedThreadPool.execute(eventHandler);
-                    System.out.println(i++);
                     keyIterator.remove();
                 }
 

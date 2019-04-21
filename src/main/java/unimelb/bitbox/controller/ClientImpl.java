@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import java.nio.channels.SelectionKey;
+import java.nio.channels.Selector;
 import java.nio.channels.SocketChannel;
 
 public class ClientImpl implements Client {
@@ -19,6 +20,8 @@ public class ClientImpl implements Client {
             socketChannel.connect(new InetSocketAddress(ip, port));
             SelectionKey selectionKey = eventSelector.registerChannel(socketChannel, SelectionKey.OP_CONNECT);
             selectionKey.attach(content);
+            Selector s = eventSelector.getSelector();
+            s.wakeup();
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -33,6 +36,8 @@ public class ClientImpl implements Client {
             buf.put(content.getBytes());
             SelectionKey selectionKey = eventSelector.registerChannel(socketChannel, SelectionKey.OP_WRITE);
             selectionKey.attach(buf);
+            Selector s =  eventSelector.getSelector();
+            s.wakeup();
         } catch (IOException e) {
             e.printStackTrace();
         }

@@ -29,7 +29,8 @@ public class EventHandler implements Runnable{
             socketChannel.configureBlocking(false);
             SelectionKey selectionKey = selector.registerChannel(socketChannel, SelectionKey.OP_WRITE);
             selectionKey.attach(buf);
-
+            Selector s =  selector.getSelector();
+            s.wakeup();
         } catch (IOException e) {
             e.printStackTrace();
             return false;
@@ -42,23 +43,19 @@ public class EventHandler implements Runnable{
         switch (event) {
             case SelectionKey.OP_ACCEPT : {
                 ServerSocketChannel serverSocketChannel = (ServerSocketChannel) selectionKey.channel();
-                selectionKey.attachment();
                 try {
                     SocketChannel socketChannel = serverSocketChannel.accept();
-                    System.out.println("1111");
                     socketChannel.configureBlocking(false);
-                    System.out.println("23333");
                     selector.registerChannel(socketChannel, SelectionKey.OP_READ);
-                    System.out.println("4444");
-                    EventSelectorImpl.getInstance().serverStatus = false;
-//                    socketChannel.close();
+                    Selector s =  selector.getSelector();
+                    s.wakeup();
+//                    System.out.println("hah");
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
                 break;
             }
             case SelectionKey.OP_CONNECT: {
-
                 String content = (String) selectionKey.attachment();
                 ByteBuffer buf = ByteBuffer.allocate(content.length());
                 buf.put(content.getBytes());
@@ -69,20 +66,14 @@ public class EventHandler implements Runnable{
                 // a channel is ready for reading
                 ByteBuffer byteBuffer = ByteBuffer.allocate(1024);
                 SocketChannel socketChannel = (SocketChannel) selectionKey.channel();
-                System.out.println("i am read");
                 try {
                     StringBuffer hhd = new StringBuffer();
-//                byteBuffer.flip();
-                    System.out.println("i am read2");
-
                     while (socketChannel.read(byteBuffer) != -1) {
                         byteBuffer.flip();
                         hhd.append(Coder.INSTANCE.getDecoder().decode(byteBuffer).toString());
                         byteBuffer.flip();
                         byteBuffer.clear();
                     }
-                    System.out.println("i am read3");
-
                     System.out.println(hhd.toString());
                     socketChannel.close();
                 } catch (IOException e) {

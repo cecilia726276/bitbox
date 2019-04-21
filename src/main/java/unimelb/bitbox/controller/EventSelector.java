@@ -1,6 +1,7 @@
 package unimelb.bitbox.controller;
 
 import java.nio.channels.SelectionKey;
+import java.nio.channels.Selector;
 import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
 
@@ -17,5 +18,7 @@ public interface EventSelector {
      * Run the controller
      */
     public void ControllerRunning(int port);
+
+    public Selector getSelector();
 
 }
