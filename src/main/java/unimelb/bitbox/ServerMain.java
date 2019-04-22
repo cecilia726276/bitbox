@@ -1,106 +1,351 @@
 package unimelb.bitbox;
 
-import unimelb.bitbox.util.Configuration;
-import unimelb.bitbox.util.Document;
-import unimelb.bitbox.util.FileSystemManager;
+import unimelb.bitbox.controller.ClientImpl;
+import unimelb.bitbox.message.Coder;
+import unimelb.bitbox.message.ProtocolUtils;
+import unimelb.bitbox.util.*;
 import unimelb.bitbox.util.FileSystemManager.FileSystemEvent;
-import unimelb.bitbox.util.FileSystemObserver;
 
-import javax.net.ServerSocketFactory;
-import java.io.DataInputStream;
-import java.io.DataOutputStream;
 import java.io.IOException;
-import java.net.ServerSocket;
-import java.net.Socket;
+import java.nio.ByteBuffer;
+import java.nio.channels.SocketChannel;
 import java.security.NoSuchAlgorithmException;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.logging.Logger;
 
-public class ServerMain implements FileSystemObserver, Runnable {
-	private static Logger log = Logger.getLogger(ServerMain.class.getName());
-	// Identifies the user number connected
-	private static int counter = 0;
-	protected FileSystemManager fileSystemManager;
+/**
+ * ServerMain is used to process file system event and message from socket channel.
+ * It provides an interface processRequest(SocketChannel socketChannel) to the EventHandler.
+ */
+public class ServerMain implements FileSystemObserver {
+    private static Logger log = Logger.getLogger(ServerMain.class.getName());
+    protected FileSystemManager fileSystemManager;
 
-	@Override
-	public void run() {
-		startServer();
-	}
 
-	public ServerMain() throws NumberFormatException, IOException, NoSuchAlgorithmException {
-		fileSystemManager=new FileSystemManager(Configuration.getConfigurationValue("path"),this);
-	}
+    /**
+     * Record connected hostPost
+     */
+    private ArrayList<Document> peerLists = new ArrayList<>();
 
-	public void startServer(){
-		ServerSocketFactory factory = ServerSocketFactory.getDefault();
-		int port = Integer.parseInt(Configuration.getConfigurationValue("port"));
-		try(ServerSocket server = factory.createServerSocket(port)){
-			System.out.println("server started.");
-			System.out.println("peer port:"+port+"Waiting for client connection..");
+    /**
+     * Record response/request history
+     */
+    private Map<SocketChannel, ArrayList<String>> history = new HashMap<>();
 
-			// Wait for connections.
-			while(true){
-				Socket client = server.accept();
-				counter++;
-				System.out.println("Client "+counter+": Applying for connection!");
+    /**
+     * maximum incoming connections
+     */
+    private static int MAXIMUM_INCOMMING_CONNECTIONS = Integer.parseInt(Configuration.getConfigurationValue("maximumIncommingConnections"));
 
-				// Start a new thread for a connection
-				Thread t = new Thread(() -> serveClient(client));
-				t.start();
-			}
+    /**
+     * port of the server from configuration.properties
+     */
+    private static int port = Integer.parseInt(Configuration.getConfigurationValue("port"));
 
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
+    /**
+     * ip of the server
+     */
+    private static String ip = Configuration.getConfigurationValue("advertisedName");
 
-	}
-	private static void serveClient(Socket client){
-		try(Socket clientSocket = client){
+    /**
+     * Up to at most blockSize bytes at a time will be requested
+     */
+    private static int blockSize = Integer.parseInt(Configuration.getConfigurationValue("blockSize"));
 
-			// The JSON Parser
-			//JSONParser parser = new JSONParser();
-			// Input stream
-			DataInputStream input = new DataInputStream(clientSocket.
-					getInputStream());
-			// Output Stream
-			DataOutputStream output = new DataOutputStream(clientSocket.
-					getOutputStream());
-			System.out.println("CLIENT: "+input.readUTF());
-			output.writeUTF("Server: Hi Client "+counter+" !!!");
+    /**
+     * client - implement ClientImpl to send/receive request
+     */
+    ClientImpl client = new ClientImpl();
 
-			// Receive more data..
-//			while(true){
-//				if(input.available() > 0){
-//					// Attempt to convert read data to JSON
-//					JSONObject command = (JSONObject) parser.parse(input.readUTF());
-//					System.out.println("COMMAND RECEIVED: "+command.toJSONString());
-//					Integer result = parseCommand(command);
-//					JSONObject results = new JSONObject();
-//					results.put("result", result);
-//					output.writeUTF(results.toJSONString());
-//				}
-//			}
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
-	}
-// asychronize (blocking method, use 1 or 2 of the threads to process the received message  )
-	@Override
-	public void processFileSystemEvent(FileSystemEvent fileSystemEvent)
-	{
-		//start a TCP server of a peer
-		//set port number according to the information in "configuration.properties "
-		//startServer();
-		// TODO: process events
-		//convert the system events to json object
-		Document doc = fileReqToDoc(fileSystemEvent);
+    /**
+     * hostPorts - store the hosts and ports of a list of peers
+     */
+    private ArrayList<HostPort> hostPorts = new ArrayList<>();
 
-	}
-	private Document fileReqToDoc(FileSystemEvent fileSystemEvent) { //request(s) only from fileManager
-		Document filReqDoc = new Document();
-		Document filDescriDoc = fileSystemEvent.fileDescriptor.toDoc();
-		filReqDoc.append("command", fileSystemEvent.event.toString());
-		filReqDoc.append("fileDescriptor", filDescriDoc);
-		filReqDoc.append("pathName", fileSystemEvent.pathName);
-		return filReqDoc;
-	}
+    public ServerMain() throws NumberFormatException, IOException, NoSuchAlgorithmException {
+        fileSystemManager=new FileSystemManager(Configuration.getConfigurationValue("path"),this);
+        String[] peers = Configuration.getConfigurationValue("peers").split(",");
+        for (String peer:peers){
+            HostPort hostPost = new HostPort(peer);
+            hostPorts.add(hostPost);
+        }
+
+        /**
+         * send handshake request in initialization stage
+         */
+        for (HostPort hostPort: hostPorts){
+            String handshakeRequest = ProtocolUtils.getHandShakeRequest(hostPort.toDoc());
+            client.sendRequest(handshakeRequest,hostPort.host,hostPort.port);
+            // ArrayList<String> requestRecords = new ArrayList<>();
+            // requestRecords.add("HANDSHAKE_REQUEST");
+            // history.put(hostPort,requestRecords);
+        }
+
+    }
+
+    /**
+     * only OP_READ would call this method
+     * 1. read buffer
+     * 2. get command
+     * 3. interact with filesystem / replyRequest according to command
+     * @param socketChannel
+     */
+    public void processRequest(SocketChannel socketChannel){
+        ByteBuffer byteBuffer = ByteBuffer.allocate(1024);
+        StringBuffer mes = new StringBuffer();
+        try {
+            mes = new StringBuffer();
+            while (socketChannel.read(byteBuffer) != -1) {
+                byteBuffer.flip();
+                mes.append(Coder.INSTANCE.getDecoder().decode(byteBuffer).toString());
+                byteBuffer.clear();
+            }
+            System.out.println(mes.toString());
+            socketChannel.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        Document document = Document.parse(mes.toString());
+        String command = document.getString("command");
+
+        switch (command){
+            case "INVALID_PROTOCOL":{
+                log.info(command + document.getString("message"));
+                break;
+            }
+            case "CONNECTION_REFUSED":{
+                log.info(command + document.getString("message"));
+                log.info("Peers in connection: "+ document.getString("message"));
+
+                break;
+            }
+            case "HANDSHAKE_REQUEST":{
+                log.info(command);
+                HostPort hostPort = (HostPort)document.get("hostPort");
+
+                /**
+                 * If the hostPort is valid
+                 */
+                if (hostPort != null){
+                    /**
+                     * If the handshake has already been completed
+                     */
+                    if (peerLists.contains(hostPort.toDoc())) {
+                        String content = ProtocolUtils.getInvalidProtocol("handshaking has already been completed");
+                        sendInvalidProtocol(socketChannel, content);
+                    }
+                    /**
+                     * If the maximum incomming connections have been reached:
+                     */
+                    else if (peerLists.size() + 1 > MAXIMUM_INCOMMING_CONNECTIONS) {
+                        String content = ProtocolUtils.getConnectionRefusedRequest(peerLists);
+                        client.replyRequest(socketChannel,content);
+                        log.info("send CONNECTION_REFUSED");
+                    }else{
+                        /**
+                         * If everything is fine, establish the connection and send back handshake response
+                         */
+                        String content = ProtocolUtils.getHandShakeResponse(new HostPort(ip,port).toDoc());
+                        client.replyRequest(socketChannel,content);
+                        peerLists.add(hostPort.toDoc());
+                        ArrayList<String> requestLists = new ArrayList<>();
+                        history.put(socketChannel,requestLists);
+                        log.info("send HANDSHAKE_RESPONSE");
+                    }
+                } else {
+                    String content = ProtocolUtils.getInvalidProtocol("message must contain a command field as string");
+                    sendInvalidProtocol(socketChannel, content);
+                }
+
+                break;
+            }
+            case "HANDSHAKE_RESPONSE":{
+                log.info(command);
+                HostPort hostPort = (HostPort)document.get("hostPort");
+                if (hostPort != null){
+                    /**
+                     * get the hostport lists to this hostPort to see if there should be a response
+                     */
+                    ArrayList<String> requestLists = new ArrayList<>();
+                    if (hostPorts.contains(hostPort)&& !peerLists.contains(hostPort.toDoc())){
+                        peerLists.add(hostPort.toDoc());
+                        history.put(socketChannel,requestLists);
+                        log.info("establish Connection");
+                    }else{
+                        String content = ProtocolUtils.getInvalidProtocol("Invalid handshake response, no request has been sent before.");
+                        sendInvalidProtocol(socketChannel, content);
+                    }
+                }else{
+                    String content = ProtocolUtils.getInvalidProtocol("message must contain a command field as string");
+                    sendInvalidProtocol(socketChannel, content);
+                }
+                break;
+            }
+            case "FILE_CREATE_REQUEST":{
+                log.info(command);
+                Document fileDescriptor = (Document)document.get("fileDescriptor");
+                String md5 = fileDescriptor.getString("md5");
+                long fileSize = fileDescriptor.getLong("fileSize");
+                long lastModified = fileDescriptor.getLong("lastModified");
+                String pathName = document.getString("pathName");
+                if (fileSystemManager.isSafePathName(pathName) && !fileSystemManager.fileNameExists(pathName,fileDescriptor.getString("md5"))){
+                    try {
+                        fileSystemManager.createFileLoader(pathName, md5,fileSize,lastModified);
+                        /**
+                         * If another file already exists with the same content,
+                         * use that file's content (i.e. does a copy) to create the intended file.
+                         */
+                        if (fileSystemManager.checkShortcut(pathName)){
+
+                        }else{
+                            /**
+                             * Else start requesting bytes
+                             */
+                            Integer length = (int) fileSize / blockSize;
+                            for (int i = 0; i < length + 1; i++){
+                                String content = ProtocolUtils.getFileBytesRequest(fileDescriptor,pathName,i,length);
+                                client.replyRequest(socketChannel,content);
+                                ArrayList<String> lists = history.get(socketChannel);
+                                lists.add("FILE_CREATE_REQUEST");
+                            }
+                        }
+                    } catch (NoSuchAlgorithmException e) {
+                        String content = ProtocolUtils.getInvalidProtocol("the loader is no longer available in this case");
+                        sendInvalidProtocol(socketChannel, content);
+                        e.printStackTrace();
+                    } catch (IOException e) {
+                        String content = ProtocolUtils.getInvalidProtocol("the loader is no longer available in this case");
+                        sendInvalidProtocol(socketChannel, content);
+                        e.printStackTrace();
+                    }
+
+                }
+
+                break;
+            }
+            case "FILE_CREATE_RESPONSE":{
+                /**
+                 * "command": "FILE_BYTES_RESPONSE",
+                 * "fileDescriptor" : {
+                 * "md5" : "b1946ac92492d2347c6235b4d2611184",
+                 * "lastModified" : 1553417607000,
+                 * "fileSize" : 6
+                 * },
+                 * "pathName" : "hello.txt",
+                 * "position" : 0,
+                 * "length" : 6,
+                 * "content" : "aGVsbG8K"
+                 * "message" : "successful read",
+                 * "status" : true
+                 */
+                break;
+            }
+            case "FILE_DELETE_REQUEST":{
+
+                break;
+            }
+            case "FILE_DELETE_RESPONSE":{
+
+                break;
+            }
+            case "FILE_MODIFY_REQUEST":{
+
+                break;
+            }
+            case "FILE_MODIFY_RESPONSE":{
+
+                break;
+            }
+            case "DIRECTORY_CREATE_REQUEST":{
+
+                break;
+            }
+            case "DIRECTORY_CREATE_RESPONSE":{
+
+                break;
+            }
+            case "DIRECTORY_DELETE_REQUEST":{
+
+                break;
+            }
+            case "DIRECTORY_DELETE_RESPONSE":{
+
+                break;
+            }
+            case "FILE_BYTES_REQUEST":{
+
+                break;
+            }
+            case "FILE_BYTES_RESPONSE":{
+
+                break;
+            }
+            default:{
+                String content = ProtocolUtils.getInvalidProtocol("message must contain a command field as string");
+                client.replyRequest(socketChannel,content);
+                log.info("send INVALID_PROTOCOL");
+            }
+        }
+        log.info(document.getString("command"));
+
+
+    }
+
+    /**
+     * After sending an INVALID_PROTOCOL message to a peer, the connection should be closed immediately.
+     * @param socketChannel
+     * @param content
+     */
+    private void sendInvalidProtocol(SocketChannel socketChannel, String content) {
+        client.replyRequest(socketChannel,content);
+        try {
+            socketChannel.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        log.info("send INVALID_PROTOCOL");
+    }
+
+    @Override
+
+    public void processFileSystemEvent(FileSystemEvent fileSystemEvent) {
+        /**
+         * The file system detects and rises events.
+         * @author SYZ
+         * @create 2019-04-22 15:52
+         */
+        FileSystemManager.EVENT event = fileSystemEvent.event;
+        switch (event){
+            case FILE_CREATE: {
+                log.info("create file!");
+                String createRequest = ProtocolUtils.getFileRequest("FILE_CREATE_REQUEST", fileSystemEvent.fileDescriptor.toDoc(),fileSystemEvent.name);
+                for (HostPort hostPort: hostPorts){
+                    //client.sendRequest(createRequest,hostPort.host,hostPort.port);
+                }
+                break;
+            }
+            case FILE_MODIFY: {
+                String modifyRequest = ProtocolUtils.getFileRequest("FILE_MODIFY_REQUEST", fileSystemEvent.fileDescriptor.toDoc(),fileSystemEvent.name);
+                break;
+            }
+            case FILE_DELETE:{
+                String deleteRequest = ProtocolUtils.getFileRequest("FILE_DELETE_REQUEST", fileSystemEvent.fileDescriptor.toDoc(),fileSystemEvent.name);
+                break;
+            }
+            case DIRECTORY_CREATE:{
+                String createDirRequest = ProtocolUtils.getDirRequest("DIRECTORY_CREATE_REQUEST", fileSystemEvent.name);
+                break;
+            }
+            case DIRECTORY_DELETE:{
+                String deleteDirRequest = ProtocolUtils.getDirRequest("DIRECTORY_DELETE_REQUEST",fileSystemEvent.name);
+                break;
+            }
+            default:
+        }
+    }
+
+
 }

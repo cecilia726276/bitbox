@@ -1,18 +1,13 @@
 package unimelb.bitbox.util;
 
-import java.io.IOException;
-import java.security.NoSuchAlgorithmException;
-
 /**
  * @author SYZ
  * @date 2019/4/18 23:01
  */
-public class HandShakeUtils implements  EventProcessing{
+public class HandShakeUtils{
 
     private HandShakeUtils(){}
-    public boolean receiveReq(Document doc) throws NoSuchAlgorithmException, IOException{
-        //check connection number
-    }
+
     /**
      * get request string
      *

@@ -1,6 +1,6 @@
 package unimelb.bitbox.draft;
 
-import unimelb.bitbox.ServerMain;
+import unimelb.bitbox.message.Coder;
 import unimelb.bitbox.util.Configuration;
 import unimelb.bitbox.util.FileSystemManager;
 import unimelb.bitbox.util.FileSystemObserver;
@@ -21,7 +21,7 @@ public class ServerDemo implements FileSystemObserver, Runnable {
 //        ServerDemo server = new ServerDemo();
 //        server.startServer(9999);
 //    }
-    private static Logger log = Logger.getLogger(ServerMain.class.getName());
+    private static Logger log = Logger.getLogger(OldServerMain.class.getName());
     protected FileSystemManager fileSystemManager;
     private static int counter = 0;
 

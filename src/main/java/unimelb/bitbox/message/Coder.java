@@ -1,11 +1,13 @@
-package unimelb.bitbox.draft;
+package unimelb.bitbox.message;
 
 import java.nio.charset.Charset;
 import java.nio.charset.CharsetDecoder;
 
 public enum Coder {
     /**
-     * instance
+     * from ByteBuffer to String
+     * @param byteBuffer
+     * @return
      */
     INSTANCE;
 
