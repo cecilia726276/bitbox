@@ -1,15 +1,17 @@
 package unimelb.bitbox.controller;
 
-import unimelb.bitbox.draft.Coder;
+import unimelb.bitbox.message.Coder;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.*;
+import java.util.Map;
 
 public class EventHandler implements Runnable{
     private SelectionKey selectionKey;
     private EventSelector selector;
     private int event;
+
     public EventHandler(SelectionKey selectionKey) {
         this.selectionKey = selectionKey;
         this.selector = EventSelectorImpl.getInstance();
@@ -24,81 +26,90 @@ public class EventHandler implements Runnable{
         }
     }
 
-    private boolean response(SocketChannel socketChannel, ByteBuffer buf) {
+    private void acceptOperation () {
+        ServerSocketChannel serverSocketChannel = (ServerSocketChannel) selectionKey.channel();
         try {
-            socketChannel.configureBlocking(false);
-            SelectionKey selectionKey = selector.registerChannel(socketChannel, SelectionKey.OP_WRITE);
-            selectionKey.attach(buf);
-            Selector s =  selector.getSelector();
-            s.wakeup();
+            SocketChannel socketChannel = serverSocketChannel.accept();
+            if (!selector.createConnection(socketChannel)) {
+                System.out.println("the number of connection is too much");
+                return;
+            }
+            CommonOperation.registerRead(socketChannel, selector);
+//          System.out.println("hah");
         } catch (IOException e) {
             e.printStackTrace();
-            return false;
         }
-        return true;
+    }
+    private void connectOperation () {
+        String content = (String) selectionKey.attachment();
+
+        CommonOperation.registerWrite((SocketChannel) selectionKey.channel(), content, false, selector);
+    }
+    private void writeOperation () {
+        // a channel is ready for writing
+        SocketChannel socketChannel = (SocketChannel) selectionKey.channel();
+        Attachment attachment = (Attachment) selectionKey.attachment();
+        String content = attachment.getContent();
+        ByteBuffer byteBuffer = ByteBuffer.allocate(content.length());
+        byteBuffer.put(content.getBytes());
+        try {
+            socketChannel.write(byteBuffer);
+            if (attachment.isFinished) {
+                selector.removeConnection(socketChannel);
+            } else {
+                CommonOperation.registerRead(socketChannel, selector);
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        } finally {
+            try {
+                socketChannel.close();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+    }
+    private void readOperation () {
+        // a channel is ready for reading
+        ByteBuffer byteBuffer = ByteBuffer.allocate(1024);
+        SocketChannel socketChannel = (SocketChannel) selectionKey.channel();
+        try {
+            StringBuffer hhd = new StringBuffer();
+            while (socketChannel.read(byteBuffer) != -1) {
+                byteBuffer.flip();
+                hhd.append(Coder.INSTANCE.getDecoder().decode(byteBuffer).toString());
+                byteBuffer.flip();
+                byteBuffer.clear();
+            }
+            // need the interface of message process
+            System.out.println(hhd.toString());
+            socketChannel.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
     @Override
     public void run() {
         switch (event) {
             case SelectionKey.OP_ACCEPT : {
-                ServerSocketChannel serverSocketChannel = (ServerSocketChannel) selectionKey.channel();
-                try {
-                    SocketChannel socketChannel = serverSocketChannel.accept();
-                    socketChannel.configureBlocking(false);
-                    selector.registerChannel(socketChannel, SelectionKey.OP_READ);
-                    Selector s =  selector.getSelector();
-                    s.wakeup();
-//                    System.out.println("hah");
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
+                acceptOperation();
                 break;
             }
             case SelectionKey.OP_CONNECT: {
-                String content = (String) selectionKey.attachment();
-                ByteBuffer buf = ByteBuffer.allocate(content.length());
-                buf.put(content.getBytes());
-                response((SocketChannel) selectionKey.channel(), buf);
+                connectOperation();
                 break;
             }
             case SelectionKey.OP_READ: {
-                // a channel is ready for reading
-                ByteBuffer byteBuffer = ByteBuffer.allocate(1024);
-                SocketChannel socketChannel = (SocketChannel) selectionKey.channel();
-                try {
-                    StringBuffer hhd = new StringBuffer();
-                    while (socketChannel.read(byteBuffer) != -1) {
-                        byteBuffer.flip();
-                        hhd.append(Coder.INSTANCE.getDecoder().decode(byteBuffer).toString());
-                        byteBuffer.flip();
-                        byteBuffer.clear();
-                    }
-                    System.out.println(hhd.toString());
-                    socketChannel.close();
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
+                readOperation();
                 break;
             }
             case SelectionKey.OP_WRITE: {
-                // a channel is ready for writing
-                SocketChannel socketChannel = (SocketChannel) selectionKey.channel();
-                ByteBuffer byteBuffer = (ByteBuffer) selectionKey.attachment();
-                try {
-                    socketChannel.write(byteBuffer);
-                    socketChannel.close();
-                } catch (IOException e) {
-                    e.printStackTrace();
-                } finally {
-                    try {
-                        socketChannel.close();
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                    }
-                }
+                writeOperation();
                 break;
             }
+            default:
+                break;
         }
         EventSelectorImpl.getInstance().handingMap.remove(selectionKey);
     }

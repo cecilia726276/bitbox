@@ -4,7 +4,7 @@ public class TestServer {
 
     public static void main(String args[]) {
         EventSelector eventSelector = EventSelectorImpl.getInstance();
-        eventSelector.ControllerRunning(8111);
+        eventSelector.controllerRunning();
 //        try {
 //            ServerDemo serverDemo = new ServerDemo();
 //            serverDemo.startServer();

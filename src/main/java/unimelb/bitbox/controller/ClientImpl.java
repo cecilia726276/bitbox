@@ -6,6 +6,7 @@ import java.nio.ByteBuffer;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.nio.channels.SocketChannel;
+import java.util.Map;
 
 public class ClientImpl implements Client {
     private EventSelector eventSelector;
@@ -24,23 +25,22 @@ public class ClientImpl implements Client {
             s.wakeup();
         } catch (IOException e) {
             e.printStackTrace();
+            return false;
         }
-        return false;
+        return true;
     }
 
     @Override
-    public boolean replyRequest(SocketChannel socketChannel, String content) {
-        try {
-            socketChannel.configureBlocking(false);
-            ByteBuffer buf = ByteBuffer.allocate(content.length());
-            buf.put(content.getBytes());
-            SelectionKey selectionKey = eventSelector.registerChannel(socketChannel, SelectionKey.OP_WRITE);
-            selectionKey.attach(buf);
-            Selector s =  eventSelector.getSelector();
-            s.wakeup();
-        } catch (IOException e) {
-            e.printStackTrace();
+    public boolean replyRequest(SocketChannel socketChannel, String content, boolean isFinal) {
+        return CommonOperation.registerWrite(socketChannel, content, isFinal, eventSelector);
+    }
+
+    @Override
+    public boolean closeSocket(SocketChannel socketChannel) {
+        if (eventSelector.removeConnection(socketChannel)) {
+            return true;
+        } else {
+            return false;
         }
-        return false;
     }
 }

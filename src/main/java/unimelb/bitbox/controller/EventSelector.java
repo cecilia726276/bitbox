@@ -4,10 +4,11 @@ import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
+import java.util.Map;
 
 public interface EventSelector {
     /**
-     * Register the Channel to Selector
+     *
      * @param socketChannel
      * @param operation
      * @return
@@ -17,8 +18,26 @@ public interface EventSelector {
     /**
      * Run the controller
      */
-    public void ControllerRunning(int port);
+    public void controllerRunning();
 
+    /**
+     * get the selector
+     * @return
+     */
     public Selector getSelector();
+
+    /**
+     * create connection
+     * @param socketChannel
+     * @return
+     */
+    public boolean createConnection(SocketChannel socketChannel);
+
+    /**
+     * remove connection
+     * @param socketChannel
+     * @return
+     */
+    public boolean removeConnection(SocketChannel socketChannel);
 
 }

@@ -1,22 +1,28 @@
 package unimelb.bitbox.controller;
 
+import com.google.common.util.concurrent.ThreadFactoryBuilder;
+import unimelb.bitbox.util.Configuration;
+
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.ServerSocket;
 import java.nio.channels.*;
-import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
+import java.util.concurrent.*;
 
 public class EventSelectorImpl implements EventSelector {
-    public Selector selector;
+
+    private Selector selector;
     private ExecutorService fixedThreadPool;
     private static EventSelectorImpl eventSelector = null;
-    public static Map<SelectionKey, Boolean> handingMap;
+    public Map<SelectionKey, Boolean> handingMap;
+    public Map<SocketChannel, Boolean> connectionGroup;
+
+    // configure params
+    private Integer port;
+    private Integer maxConnection;
 
     public static EventSelectorImpl getInstance() {
         if (eventSelector == null) {
@@ -29,19 +35,67 @@ public class EventSelectorImpl implements EventSelector {
         return eventSelector;
     }
 
+    @Override
     public Selector getSelector() {
         return selector;
     }
 
+    @Override
+    public boolean createConnection(SocketChannel socketChannel) {
+        if (connectionGroup.size() >= maxConnection) {
+            try {
+                socketChannel.close();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+            return false;
+        } else {
+            connectionGroup.put(socketChannel, true);
+            return true;
+        }
+
+    }
+
+    @Override
+    public boolean removeConnection(SocketChannel socketChannel) {
+        try {
+            socketChannel.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        connectionGroup.remove(socketChannel);
+        return false;
+    }
+
+
     private EventSelectorImpl() {
-        fixedThreadPool = Executors.newFixedThreadPool(4);
+        initConfiguration();
+        initThreadPool();
         try {
             selector = Selector.open();
             handingMap = new ConcurrentHashMap<>();
+            connectionGroup = new ConcurrentHashMap<>();
         } catch (IOException e) {
             e.printStackTrace();
         }
     }
+
+    private boolean initThreadPool () {
+        ThreadFactory namedThreadFactory = new ThreadFactoryBuilder()
+                .setNameFormat("handler-pool-%d").build();
+        fixedThreadPool = new ThreadPoolExecutor(5, 200,
+                0L, TimeUnit.MILLISECONDS,
+                new LinkedBlockingQueue<Runnable>(1024), namedThreadFactory, new ThreadPoolExecutor.AbortPolicy());
+        return true;
+    }
+    private boolean initConfiguration () {
+        port = Integer.valueOf(Configuration.getConfigurationValue("port"));
+        maxConnection = Integer.valueOf(
+                Configuration.getConfigurationValue("maximumIncommingConnections"));
+        return true;
+    }
+
+
 
     /**
      * register socketChannel
@@ -49,6 +103,7 @@ public class EventSelectorImpl implements EventSelector {
      * @param operation
      * @return
      */
+    @Override
     public SelectionKey registerChannel(SocketChannel socketChannel, Integer operation) {
         SelectionKey selectionKey = null;
         try {
@@ -60,8 +115,8 @@ public class EventSelectorImpl implements EventSelector {
 
         return selectionKey;
     }
-
-    public void ControllerRunning(int port) {
+    @Override
+    public void controllerRunning() {
         ServerSocketChannel serverSocketChannel = null;
         try {
             serverSocketChannel = ServerSocketChannel.open();
@@ -85,8 +140,6 @@ public class EventSelectorImpl implements EventSelector {
             } catch (IOException e) {
                 e.printStackTrace();
             }
-
-
 //            System.out.println(numberOfPrepared);
             if (numberOfPrepared > 0) {
                 int i = 0;
@@ -106,7 +159,6 @@ public class EventSelectorImpl implements EventSelector {
                     fixedThreadPool.execute(eventHandler);
                     keyIterator.remove();
                 }
-
             }
         }
     }

@@ -32,12 +32,9 @@ public class TestClient {
 //        clientMain.startServer("localhost", 8111);
 //        clientMain.startServer("localhost", 8111);
 //        clientMain.startServer("localhost", 8111);
-         ExecutorService  fixedThreadPool = Executors.newFixedThreadPool(5);
-         fixedThreadPool.execute(new SimpleSend());
-         fixedThreadPool.execute(new SimpleSend());
-         fixedThreadPool.execute(new SimpleSend());
-         fixedThreadPool.execute(new SimpleSend());
-         fixedThreadPool.execute(new SimpleSend());
-
+         ExecutorService  fixedThreadPool = Executors.newFixedThreadPool(12);
+         for (int i=0; i<12; i++) {
+             fixedThreadPool.execute(new SimpleSend());
+         }
     }
 }
