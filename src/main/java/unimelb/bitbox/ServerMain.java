@@ -192,6 +192,7 @@ public class ServerMain implements FileSystemObserver {
                 long lastModified = fileDescriptor.getLong("lastModified");
                 String pathName = document.getString("pathName");
                 if (fileSystemManager.isSafePathName(pathName) && !fileSystemManager.fileNameExists(pathName,fileDescriptor.getString("md5"))){
+
                     try {
                         fileSystemManager.createFileLoader(pathName, md5,fileSize,lastModified);
                         /**
@@ -199,29 +200,26 @@ public class ServerMain implements FileSystemObserver {
                          * use that file's content (i.e. does a copy) to create the intended file.
                          */
                         if (fileSystemManager.checkShortcut(pathName)){
-
+                            // how to deal with this situation?
                         }else{
+                            String fileResponse = ProtocolUtils.getFileResponse(command,fileDescriptor,pathName,true,"file loader ready");
+                            client.replyRequest(socketChannel,fileResponse);
                             /**
                              * Else start requesting bytes
                              */
                             Integer length = (int) fileSize / blockSize;
                             for (int i = 0; i < length + 1; i++){
-                                String content = ProtocolUtils.getFileBytesRequest(fileDescriptor,pathName,i,length);
-                                client.replyRequest(socketChannel,content);
+                                String fileBytesRequest = ProtocolUtils.getFileBytesRequest(fileDescriptor,pathName,i,length);
+                                client.replyRequest(socketChannel,fileBytesRequest);
                                 ArrayList<String> lists = history.get(socketChannel);
                                 lists.add("FILE_CREATE_REQUEST");
                             }
                         }
-                    } catch (NoSuchAlgorithmException e) {
-                        String content = ProtocolUtils.getInvalidProtocol("the loader is no longer available in this case");
-                        sendInvalidProtocol(socketChannel, content);
-                        e.printStackTrace();
-                    } catch (IOException e) {
-                        String content = ProtocolUtils.getInvalidProtocol("the loader is no longer available in this case");
+                    } catch (Exception e) {
+                        String content = ProtocolUtils.getFileResponse(command,fileDescriptor,pathName,false,"the loader is no longer available in this case");
                         sendInvalidProtocol(socketChannel, content);
                         e.printStackTrace();
                     }
-
                 }
 
                 break;
