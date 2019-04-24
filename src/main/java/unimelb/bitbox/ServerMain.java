@@ -1,17 +1,17 @@
 package unimelb.bitbox;
 
 import unimelb.bitbox.controller.ClientImpl;
-import unimelb.bitbox.message.Coder;
 import unimelb.bitbox.message.ProtocolUtils;
 import unimelb.bitbox.util.*;
 import unimelb.bitbox.util.FileSystemManager.FileSystemEvent;
 
 import java.io.IOException;
-import java.nio.ByteBuffer;
+import java.net.InetSocketAddress;
 import java.nio.channels.SocketChannel;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.logging.Logger;
 
@@ -23,9 +23,13 @@ public class ServerMain implements FileSystemObserver {
     private static Logger log = Logger.getLogger(ServerMain.class.getName());
     protected FileSystemManager fileSystemManager;
 
+//    /**
+//     * Record the corresponding HostPort according to SocketChannel.
+//     */
+//    private ConcurrentHashMap<SocketChannel,HostPort> channelTable = new ConcurrentHashMap<>();
 
     /**
-     * Record connected hostPost
+     * Record connected hostPost 一会我把list改成set的数据结构，这样会更好
      */
     private ArrayList<Document> peerLists = new ArrayList<>();
 
@@ -78,6 +82,7 @@ public class ServerMain implements FileSystemObserver {
         for (HostPort hostPort: hostPorts){
             String handshakeRequest = ProtocolUtils.getHandShakeRequest(hostPort.toDoc());
             client.sendRequest(handshakeRequest,hostPort.host,hostPort.port);
+            // 此处需要更新状态机
             // ArrayList<String> requestRecords = new ArrayList<>();
             // requestRecords.add("HANDSHAKE_REQUEST");
             // history.put(hostPort,requestRecords);
@@ -92,34 +97,43 @@ public class ServerMain implements FileSystemObserver {
      * 3. interact with filesystem / replyRequest according to command
      * @param socketChannel
      */
-    public void processRequest(SocketChannel socketChannel){
-        ByteBuffer byteBuffer = ByteBuffer.allocate(1024);
-        StringBuffer mes = new StringBuffer();
-        try {
-            mes = new StringBuffer();
-            while (socketChannel.read(byteBuffer) != -1) {
-                byteBuffer.flip();
-                mes.append(Coder.INSTANCE.getDecoder().decode(byteBuffer).toString());
-                byteBuffer.clear();
-            }
-            System.out.println(mes.toString());
-            socketChannel.close();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-
-        Document document = Document.parse(mes.toString());
+    public void processRequest(SocketChannel socketChannel, String string){
+        Document document = Document.parse(string);
         String command = document.getString("command");
 
         switch (command){
             case "INVALID_PROTOCOL":{
                 log.info(command + document.getString("message"));
+                InetSocketAddress socketAddress;
+                try {
+                    socketAddress = (InetSocketAddress) socketChannel.getRemoteAddress();
+                    String ip = socketAddress.getAddress().toString();
+                    int port = socketAddress.getPort();
+                    HostPort hostPort = new HostPort(ip, port);
+                    /**
+                     * update existing connections
+                     */
+                    if (peerLists.contains(hostPort.toDoc())){
+                        peerLists.remove(hostPort.toDoc());
+                    }
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+                // 此处需要更新状态机 - 知道这个invalid protocol 对应的是哪个request失败了
                 break;
             }
             case "CONNECTION_REFUSED":{
                 log.info(command + document.getString("message"));
                 log.info("Peers in connection: "+ document.getString("message"));
-
+                // 连接失败
+                // 此处需要更新状态机
+                List<Document> existingPeers = (List<Document>) document.get("message");
+                HostPort firstPeers = new HostPort(existingPeers.get(0));
+                String handshakeRequest = ProtocolUtils.getHandShakeRequest(firstPeers.toDoc());
+                client.sendRequest(handshakeRequest,firstPeers.host,firstPeers.port);
+                // The peer that tried to connect should do a breadth first search of peers in the peers list, attempt to make a connection to one of them.
+                // 发送新请求，我就选了列表里的第一个peer发送请求
+                // 此处需要更新状态机
                 break;
             }
             case "HANDSHAKE_REQUEST":{
@@ -140,16 +154,18 @@ public class ServerMain implements FileSystemObserver {
                     /**
                      * If the maximum incomming connections have been reached:
                      */
+                    // 这里 if 条件需要改， MAXIMUM_INCOMMING_CONNECTIONS 如果指的是被动连接数的话。。。
+                    // 或者NIO来处理这个条件下的情况
                     else if (peerLists.size() + 1 > MAXIMUM_INCOMMING_CONNECTIONS) {
                         String content = ProtocolUtils.getConnectionRefusedRequest(peerLists);
-                        client.replyRequest(socketChannel,content);
+                        client.replyRequest(socketChannel,content,true);
                         log.info("send CONNECTION_REFUSED");
                     }else{
                         /**
                          * If everything is fine, establish the connection and send back handshake response
                          */
                         String content = ProtocolUtils.getHandShakeResponse(new HostPort(ip,port).toDoc());
-                        client.replyRequest(socketChannel,content);
+                        client.replyRequest(socketChannel,content,false);
                         peerLists.add(hostPort.toDoc());
                         ArrayList<String> requestLists = new ArrayList<>();
                         history.put(socketChannel,requestLists);
@@ -203,14 +219,14 @@ public class ServerMain implements FileSystemObserver {
                             // how to deal with this situation?
                         }else{
                             String fileResponse = ProtocolUtils.getFileResponse(command,fileDescriptor,pathName,true,"file loader ready");
-                            client.replyRequest(socketChannel,fileResponse);
+                            client.replyRequest(socketChannel,fileResponse,false);
                             /**
                              * Else start requesting bytes
                              */
                             Integer length = (int) fileSize / blockSize;
                             for (int i = 0; i < length + 1; i++){
                                 String fileBytesRequest = ProtocolUtils.getFileBytesRequest(fileDescriptor,pathName,i,length);
-                                client.replyRequest(socketChannel,fileBytesRequest);
+                                client.replyRequest(socketChannel,fileBytesRequest,false);
                                 ArrayList<String> lists = history.get(socketChannel);
                                 lists.add("FILE_CREATE_REQUEST");
                             }
@@ -283,7 +299,7 @@ public class ServerMain implements FileSystemObserver {
             }
             default:{
                 String content = ProtocolUtils.getInvalidProtocol("message must contain a command field as string");
-                client.replyRequest(socketChannel,content);
+                client.replyRequest(socketChannel,content,false);
                 log.info("send INVALID_PROTOCOL");
             }
         }
@@ -298,7 +314,7 @@ public class ServerMain implements FileSystemObserver {
      * @param content
      */
     private void sendInvalidProtocol(SocketChannel socketChannel, String content) {
-        client.replyRequest(socketChannel,content);
+        client.replyRequest(socketChannel,content,false);
         try {
             socketChannel.close();
         } catch (IOException e) {
