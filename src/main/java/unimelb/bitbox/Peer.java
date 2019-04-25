@@ -16,6 +16,9 @@ public class Peer
         log.info("BitBox Peer starting...");
         Configuration.getConfiguration();
 
+//        EventSelector eventSelector = EventSelectorImpl.getInstance();
+//        eventSelector.controllerRunning();
+
         new ServerMain();
 
     }
