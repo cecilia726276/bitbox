@@ -28,8 +28,14 @@ public class TestServer {
         Client client = new ClientImpl();
         client.sendRequest("hahahahah", "localhost", 8112);
         client.sendRequest("heheheh", "localhost", 8112);
-        client.sendRequest("heiheiheihie", "localhost", 8112);
-
+        while(true) {
+            try {
+                Thread.sleep(1000);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+            client.sendRequest("heiheiheihie", "localhost", 8112);
+        }
 //        try {
 //            ServerDemo serverDemo = new ServerDemo();
 //            serverDemo.startServer();
@@ -38,11 +44,11 @@ public class TestServer {
 //        } catch (NoSuchAlgorithmException e) {
 //            e.printStackTrace();
 //        }
-        try {
-            thread.join();
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
+//        try {
+//            thread.join();
+//        } catch (InterruptedException e) {
+//            e.printStackTrace();
+//        }
     }
 
 

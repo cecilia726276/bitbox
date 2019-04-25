@@ -136,10 +136,11 @@ public class EventSelectorImpl implements EventSelector {
         while (true) {
             // select prepared selector
             try {
-                numberOfPrepared = selector.selectNow();
+                numberOfPrepared = selector.select();
             } catch (IOException e) {
                 e.printStackTrace();
             }
+//            System.out.println("number:"+numberOfPrepared);
             if (numberOfPrepared > 0) {
                 int i = 0;
                 Set selectedKeys = selector.selectedKeys();
@@ -147,6 +148,9 @@ public class EventSelectorImpl implements EventSelector {
                 while (keyIterator.hasNext()) {
 
                     SelectionKey key = (SelectionKey) keyIterator.next();
+                    if (!key.isValid()) {
+                        continue;
+                    }
                     if (handingMap.get(key) != null) {
                         keyIterator.remove();
                         continue;

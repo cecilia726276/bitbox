@@ -7,6 +7,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 public class TestClient {
+    static int i = 0;
     public static class SimpleSend implements Runnable {
 
         @Override
@@ -32,8 +33,8 @@ public class TestClient {
 //        clientMain.startServer("localhost", 8111);
 //        clientMain.startServer("localhost", 8111);
 //        clientMain.startServer("localhost", 8111);
-         ExecutorService  fixedThreadPool = Executors.newFixedThreadPool(12);
-         for (int i=0; i<12; i++) {
+         ExecutorService  fixedThreadPool = Executors.newFixedThreadPool(30);
+         for (int i=0; i<30; i++) {
              fixedThreadPool.execute(new SimpleSend());
          }
     }

@@ -30,7 +30,6 @@ public class EventHandler implements Runnable{
         ServerSocketChannel serverSocketChannel = (ServerSocketChannel) selectionKey.channel();
         try {
             SocketChannel socketChannel = serverSocketChannel.accept();
-            EventSelectorImpl.getInstance().handingMap.remove(selectionKey);
             if (!selector.createConnection(socketChannel)) {
                 System.out.println("the number of connection is too much");
                 return;
@@ -68,17 +67,20 @@ public class EventHandler implements Runnable{
         byteBuffer.flip();
         try {
             socketChannel.write(byteBuffer);
-            if (attachment.isFinished) {
-                selector.removeConnection(socketChannel);
-            } else {
-                CommonOperation.registerRead(socketChannel, selector);
-            }
+
         } catch (IOException e) {
             e.printStackTrace();
         } finally {
             if (! byteBuffer.hasRemaining()) {
                 // cancel write event
                 selectionKey.interestOps(selectionKey.interestOps() & ~SelectionKey.OP_WRITE);
+                if (attachment.isFinished) {
+                    selector.removeConnection(socketChannel);
+//                    selectionKey.cancel();
+                } else {
+                    System.out.println("read reg");
+                    CommonOperation.registerRead(socketChannel, selector);
+                }
             }
             try {
                 socketChannel.close();
@@ -94,11 +96,16 @@ public class EventHandler implements Runnable{
         try {
             StringBuffer hhd = new StringBuffer();
             while (socketChannel.read(byteBuffer) != -1) {
-                byteBuffer.flip();
-                hhd.append(Coder.INSTANCE.getDecoder().decode(byteBuffer).toString());
-                byteBuffer.flip();
-                byteBuffer.clear();
+                if (byteBuffer.hasRemaining()) {
+                    byteBuffer.flip();
+
+                    hhd.append(Coder.INSTANCE.getDecoder().decode(byteBuffer).toString());
+                    byteBuffer.flip();
+                    byteBuffer.clear();
+
+                }
             }
+
             // need the interface of message process
             System.out.println(hhd.toString());
             socketChannel.close();
