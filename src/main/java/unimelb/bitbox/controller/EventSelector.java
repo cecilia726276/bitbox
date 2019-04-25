@@ -18,7 +18,7 @@ public interface EventSelector {
     /**
      * Run the controller
      */
-    public void controllerRunning();
+    public void controllerRunning(int pp);
 
     /**
      * get the selector

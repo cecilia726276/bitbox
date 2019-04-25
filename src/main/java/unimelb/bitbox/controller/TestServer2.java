@@ -3,7 +3,7 @@ package unimelb.bitbox.controller;
 public class TestServer2 {
     public static void main(String args[]) {
         EventSelector eventSelector = EventSelectorImpl.getInstance();
-        eventSelector.controllerRunning();
+        eventSelector.controllerRunning(8112);
 //        try {
 //            ServerDemo serverDemo = new ServerDemo();
 //            serverDemo.startServer();

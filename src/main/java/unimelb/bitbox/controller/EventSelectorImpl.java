@@ -45,6 +45,8 @@ public class EventSelectorImpl implements EventSelector {
         if (connectionGroup.size() >= maxConnection) {
             try {
                 socketChannel.close();
+                // reply一个refuse
+
             } catch (IOException e) {
                 e.printStackTrace();
             }
@@ -116,13 +118,13 @@ public class EventSelectorImpl implements EventSelector {
         return selectionKey;
     }
     @Override
-    public void controllerRunning() {
+    public void controllerRunning(int pp) {
         ServerSocketChannel serverSocketChannel = null;
         try {
             serverSocketChannel = ServerSocketChannel.open();
 
             ServerSocket ss = serverSocketChannel.socket();
-            ss.bind(new InetSocketAddress(port));
+            ss.bind(new InetSocketAddress(pp));
             serverSocketChannel.configureBlocking(false);
             serverSocketChannel.register(selector, SelectionKey.OP_ACCEPT);
         } catch (IOException e) {
@@ -132,15 +134,12 @@ public class EventSelectorImpl implements EventSelector {
 
         int numberOfPrepared = 0;
         while (true) {
-//            Client client = new ClientImpl();
-//            client.sendRequest("hahahahah", "localhost", 8111);
             // select prepared selector
             try {
-                numberOfPrepared = selector.select();
+                numberOfPrepared = selector.selectNow();
             } catch (IOException e) {
                 e.printStackTrace();
             }
-//            System.out.println(numberOfPrepared);
             if (numberOfPrepared > 0) {
                 int i = 0;
                 Set selectedKeys = selector.selectedKeys();
@@ -154,7 +153,6 @@ public class EventSelectorImpl implements EventSelector {
                     }
                     handingMap.put(key, true);
                     EventHandler eventHandler = new EventHandler(key);
-//                    key.cancel();
 //                    eventHandler.run();
                     fixedThreadPool.execute(eventHandler);
                     keyIterator.remove();

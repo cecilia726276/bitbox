@@ -25,7 +25,7 @@ public class CommonOperation {
     public static boolean registerRead(SocketChannel socketChannel, EventSelector selector) {
         try {
             socketChannel.configureBlocking(false);
-            SelectionKey selectionKey = selector.registerChannel(socketChannel, SelectionKey.OP_READ);
+            selector.registerChannel(socketChannel, SelectionKey.OP_READ);
             selector.getSelector().wakeup();
         } catch (IOException e) {
             e.printStackTrace();

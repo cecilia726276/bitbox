@@ -30,6 +30,7 @@ public class EventHandler implements Runnable{
         ServerSocketChannel serverSocketChannel = (ServerSocketChannel) selectionKey.channel();
         try {
             SocketChannel socketChannel = serverSocketChannel.accept();
+            EventSelectorImpl.getInstance().handingMap.remove(selectionKey);
             if (!selector.createConnection(socketChannel)) {
                 System.out.println("the number of connection is too much");
                 return;
@@ -42,7 +43,18 @@ public class EventHandler implements Runnable{
     }
     private void connectOperation () {
         String content = (String) selectionKey.attachment();
-
+        selectionKey.attach(new Attachment(false, content));
+        SocketChannel channel = (SocketChannel) selectionKey.channel();
+        if (channel.isConnectionPending()) {
+            try {
+                if (channel.finishConnect()) {
+                    System.out.println("client connect server succ");
+                }
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+//        writeOperation();
         CommonOperation.registerWrite((SocketChannel) selectionKey.channel(), content, false, selector);
     }
     private void writeOperation () {
@@ -51,7 +63,9 @@ public class EventHandler implements Runnable{
         Attachment attachment = (Attachment) selectionKey.attachment();
         String content = attachment.getContent();
         ByteBuffer byteBuffer = ByteBuffer.allocate(content.length());
+        byteBuffer.clear();
         byteBuffer.put(content.getBytes());
+        byteBuffer.flip();
         try {
             socketChannel.write(byteBuffer);
             if (attachment.isFinished) {
@@ -62,6 +76,10 @@ public class EventHandler implements Runnable{
         } catch (IOException e) {
             e.printStackTrace();
         } finally {
+            if (! byteBuffer.hasRemaining()) {
+                // cancel write event
+                selectionKey.interestOps(selectionKey.interestOps() & ~SelectionKey.OP_WRITE);
+            }
             try {
                 socketChannel.close();
             } catch (IOException e) {
