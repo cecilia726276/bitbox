@@ -7,11 +7,9 @@ import unimelb.bitbox.util.FileSystemManager.FileSystemEvent;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
-import java.nio.ByteBuffer;
 import java.nio.channels.SocketChannel;
 import java.security.NoSuchAlgorithmException;
 import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Logger;
 
 /**
@@ -28,7 +26,8 @@ public class ServerMain implements FileSystemObserver {
 //     * Record the corresponding HostPort according to SocketChannel.
 //     */
 //    private ConcurrentHashMap<SocketChannel,HostPort> channelTable = new ConcurrentHashMap<>();
-
+    //private List<RequestState> list = Collections.synchronizedList(new ArrayList());
+    private ConcurrentHashMap<String, List<RequestState>> stateMap = new ConcurrentHashMap<>();
     /**
      * Record connected hostPost 一会我把list改成set的数据结构，这样会更好
      */
@@ -83,10 +82,10 @@ public class ServerMain implements FileSystemObserver {
      */
     private ArrayList<HostPort> hostPorts = new ArrayList<>();
 
-
     public ServerMain() throws NumberFormatException, IOException, NoSuchAlgorithmException {
         fileSystemManager=new FileSystemManager(Configuration.getConfigurationValue("path"),this);
         String[] peers = Configuration.getConfigurationValue("peers").split(",");
+
         for (String peer:peers){
             HostPort hostPost = new HostPort(peer);
             hostPorts.add(hostPost);
@@ -183,6 +182,13 @@ public class ServerMain implements FileSystemObserver {
                         incomingPeerSet.add(hostPort.toDoc());
                         // ArrayList<String> requestLists = new ArrayList<>();
                         // history.put(socketChannel,requestLists);
+                        if(!stateMap.containsKey(hostPort.toDoc().toJson()))
+                        {
+                            List<RequestState> list = Collections.synchronizedList(new ArrayList());
+                            stateMap.put(hostPort.toDoc().toJson(), list);
+                        }
+                        ArrayList<String> requestLists = new ArrayList<>();
+                        history.put(socketChannel,requestLists);
                         log.info("send HANDSHAKE_RESPONSE");
                     }
                 } else {
@@ -206,6 +212,12 @@ public class ServerMain implements FileSystemObserver {
                         peerSet.add(hostPort.toDoc());
                         // history.put(socketChannel,requestLists);
                         // 此处需要更新状态机 - 这里可以根据socketChannel建立状态机的 ConcurrentHashMap
+                        if(!stateMap.containsKey(hostPort.toDoc().toJson()))
+                        {
+                            List<RequestState> list = Collections.synchronizedList(new ArrayList());
+                            stateMap.put(hostPort.toDoc().toJson(), list);
+                        }
+                        history.put(socketChannel,requestLists);
                         log.info("establish Connection");
                     }else{
                         String content = ProtocolUtils.getInvalidProtocol("Invalid handshake response, no request has been sent before.");
@@ -438,7 +450,67 @@ public class ServerMain implements FileSystemObserver {
                         } catch (Exception e) {
                             e.printStackTrace();
                         }
+                try{
+                    InetSocketAddress socketAddress = (InetSocketAddress) socketChannel.getRemoteAddress();
+                    String ip = socketAddress.getAddress().toString();
+                    int port = socketAddress.getPort();
+                    HostPort hostPort = new HostPort(ip, port);
+                    if(peerSet.contains(hostPort.toDoc()))
+                    {
+                        String pathName = document.getString("pathName");
+                        int position = document.getInteger("position");
+                        int length = document.getInteger("length");
+                        if(position==0)
+                        {
+                            RequestState rs = new RequestState("FILE_CREATE_REQUEST",pathName);
+                            List<RequestState> list = stateMap.get(hostPort.toDoc().toJson());
+                            if(list.contains(rs))
+                            {
+                                //执行写byte的操作
+                                list.remove(rs);
+                                rs = new RequestState("FILE_BYTES_REQUEST",pathName, position, length);
+                                list.add(rs);
+                                stateMap.put(hostPort.toDoc().toJson(), list);
 
+                            }
+                            else
+                            {
+                                String content = ProtocolUtils.getInvalidProtocol("invalid message");
+                                sendInvalidProtocol(socketChannel, content);
+
+                            }
+                        }
+                        else if(position <= length-1)
+                        {
+                            RequestState rs = new RequestState("FILE_BYTES_REQUEST",pathName, position-1, length);
+                            List<RequestState> list = stateMap.get(hostPort.toDoc().toJson());
+                            if(list.contains(rs))
+                            {
+                                //执行写byte操作
+                                list.remove(rs);
+                                rs = new RequestState("FILE_BYTES_REQUEST",pathName, position, length);
+                                list.add(rs);
+                                stateMap.put(hostPort.toDoc().toJson(), list);
+                            }
+                        }
+                        else
+                        {
+                            String content = ProtocolUtils.getInvalidProtocol("position out of length!");
+                            sendInvalidProtocol(socketChannel, content);
+
+                        }
+                    }
+                    else
+                    {
+                        String content = ProtocolUtils.getInvalidProtocol("peer not found");
+                        sendInvalidProtocol(socketChannel, content);
+
+                    }
+                }catch(IOException ioe){
+                    String content = ProtocolUtils.getInvalidProtocol("can't get address");
+                    sendInvalidProtocol(socketChannel, content);
+                    ioe.printStackTrace();
+                }
                         }
                     }
 
