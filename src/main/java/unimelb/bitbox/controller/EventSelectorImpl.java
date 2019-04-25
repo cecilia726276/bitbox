@@ -149,12 +149,14 @@ public class EventSelectorImpl implements EventSelector {
 
                     SelectionKey key = (SelectionKey) keyIterator.next();
                     if (!key.isValid()) {
+                        System.out.println("valid"+key.hashCode());
                         continue;
                     }
                     if (handingMap.get(key) != null) {
                         keyIterator.remove();
                         continue;
                     }
+//                    System.out.println(key.hashCode());
                     handingMap.put(key, true);
                     EventHandler eventHandler = new EventHandler(key);
 //                    eventHandler.run();

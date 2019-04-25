@@ -78,7 +78,6 @@ public class EventHandler implements Runnable{
                     selector.removeConnection(socketChannel);
 //                    selectionKey.cancel();
                 } else {
-                    System.out.println("read reg");
                     CommonOperation.registerRead(socketChannel, selector);
                 }
             }
@@ -105,10 +104,11 @@ public class EventHandler implements Runnable{
 
                 }
             }
-
+            selectionKey.interestOps(selectionKey.interestOps() & ~SelectionKey.OP_READ);
             // need the interface of message process
             System.out.println(hhd.toString());
-            socketChannel.close();
+
+//            socketChannel.close();
         } catch (IOException e) {
             e.printStackTrace();
         }
