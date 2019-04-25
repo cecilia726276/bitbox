@@ -10,6 +10,7 @@ import java.net.InetSocketAddress;
 import java.nio.channels.SocketChannel;
 import java.security.NoSuchAlgorithmException;
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Logger;
 
 /**
@@ -24,7 +25,8 @@ public class ServerMain implements FileSystemObserver {
 //     * Record the corresponding HostPort according to SocketChannel.
 //     */
 //    private ConcurrentHashMap<SocketChannel,HostPort> channelTable = new ConcurrentHashMap<>();
-
+    //private List<RequestState> list = Collections.synchronizedList(new ArrayList());
+    private ConcurrentHashMap<String, List<RequestState>> stateMap = new ConcurrentHashMap<>();
     /**
      * Record connected hostPost 一会我把list改成set的数据结构，这样会更好
      */
@@ -73,6 +75,7 @@ public class ServerMain implements FileSystemObserver {
     public ServerMain() throws NumberFormatException, IOException, NoSuchAlgorithmException {
         fileSystemManager=new FileSystemManager(Configuration.getConfigurationValue("path"),this);
         String[] peers = Configuration.getConfigurationValue("peers").split(",");
+        
         for (String peer:peers){
             HostPort hostPost = new HostPort(peer);
             hostPorts.add(hostPost);
@@ -113,6 +116,7 @@ public class ServerMain implements FileSystemObserver {
                     String ip = socketAddress.getAddress().toString();
                     int port = socketAddress.getPort();
                     HostPort hostPort = new HostPort(ip, port);
+
                     /**
                      * update existing connections
                      */
@@ -171,6 +175,11 @@ public class ServerMain implements FileSystemObserver {
                         String content = ProtocolUtils.getHandShakeResponse(new HostPort(ip,port).toDoc());
                         client.replyRequest(socketChannel,content,false);
                         peerSet.add(hostPort.toDoc());
+                        if(!stateMap.containsKey(hostPort.toDoc().toJson()))
+                        {
+                            List<RequestState> list = Collections.synchronizedList(new ArrayList());
+                            stateMap.put(hostPort.toDoc().toJson(), list);
+                        }
                         ArrayList<String> requestLists = new ArrayList<>();
                         history.put(socketChannel,requestLists);
                         log.info("send HANDSHAKE_RESPONSE");
@@ -192,6 +201,11 @@ public class ServerMain implements FileSystemObserver {
                     ArrayList<String> requestLists = new ArrayList<>();
                     if (hostPorts.contains(hostPort)&& !peerSet.contains(hostPort.toDoc())){
                         peerSet.add(hostPort.toDoc());
+                        if(!stateMap.containsKey(hostPort.toDoc().toJson()))
+                        {
+                            List<RequestState> list = Collections.synchronizedList(new ArrayList());
+                            stateMap.put(hostPort.toDoc().toJson(), list);
+                        }
                         history.put(socketChannel,requestLists);
                         log.info("establish Connection");
                     }else{
@@ -206,41 +220,60 @@ public class ServerMain implements FileSystemObserver {
             }
             case "FILE_CREATE_REQUEST":{
                 log.info(command);
-                Document fileDescriptor = (Document)document.get("fileDescriptor");
-                String md5 = fileDescriptor.getString("md5");
-                long fileSize = fileDescriptor.getLong("fileSize");
-                long lastModified = fileDescriptor.getLong("lastModified");
-                String pathName = document.getString("pathName");
-                if (fileSystemManager.isSafePathName(pathName) && !fileSystemManager.fileNameExists(pathName,fileDescriptor.getString("md5"))){
 
-                    try {
-                        fileSystemManager.createFileLoader(pathName, md5,fileSize,lastModified);
-                        /**
-                         * If another file already exists with the same content,
-                         * use that file's content (i.e. does a copy) to create the intended file.
-                         */
-                        if (fileSystemManager.checkShortcut(pathName)){
-                            // how to deal with this situation?
-                        }else{
-                            String fileResponse = ProtocolUtils.getFileResponse(command,fileDescriptor,pathName,true,"file loader ready");
-                            client.replyRequest(socketChannel,fileResponse,false);
+                try{
+                    InetSocketAddress socketAddress = (InetSocketAddress) socketChannel.getRemoteAddress();
+                    String ip = socketAddress.getAddress().toString();
+                    int port = socketAddress.getPort();
+                    HostPort hostPort = new HostPort(ip, port);
+                    if(peerSet.contains(hostPort.toDoc())){ //已建立连接，改package有效
+                        //允许调用createFileLoader函数
+                        Document fileDescriptor = (Document)document.get("fileDescriptor");
+                        String md5 = fileDescriptor.getString("md5");
+                        long fileSize = fileDescriptor.getLong("fileSize");
+                        long lastModified = fileDescriptor.getLong("lastModified");
+                        String pathName = document.getString("pathName");
+                        if (fileSystemManager.isSafePathName(pathName) && !fileSystemManager.fileNameExists(pathName,fileDescriptor.getString("md5")))
+                        {
+                            fileSystemManager.createFileLoader(pathName, md5,fileSize,lastModified);
                             /**
-                             * Else start requesting bytes
+                             * If another file already exists with the same content,
+                             * use that file's content (i.e. does a copy) to create the intended file.
                              */
-                            Integer length = (int) fileSize / blockSize;
-                            for (int i = 0; i < length + 1; i++){
-                                String fileBytesRequest = ProtocolUtils.getFileBytesRequest(fileDescriptor,pathName,i,length);
-                                client.replyRequest(socketChannel,fileBytesRequest,false);
-                                ArrayList<String> lists = history.get(socketChannel);
-                                lists.add("FILE_CREATE_REQUEST");
+                            if (fileSystemManager.checkShortcut(pathName)){
+                                // how to deal with this situation?
+                            }else {
+                                String fileResponse = ProtocolUtils.getFileResponse(command, fileDescriptor, pathName, true, "file loader ready");
+
+                                client.replyRequest(socketChannel, fileResponse, false);
+                                RequestState requestState = new RequestState("FILE_CREATE_REQUEST", pathName);
+                                stateMap.get(hostPort.toDoc().toJson()).add(requestState);
+                                /**
+                                 * Else start requesting bytes
+                                 */
+                                Integer length = (int) fileSize / blockSize;
+
+//                                for (int i = 0; i < length + 1; i++){
+//                                String fileBytesRequest = ProtocolUtils.getFileBytesRequest(fileDescriptor,pathName,i,length);
+//                                client.replyRequest(socketChannel,fileBytesRequest,false);
+//                                ArrayList<String> lists = history.get(socketChannel);
+//                                lists.add("FILE_CREATE_REQUEST");
                             }
                         }
-                    } catch (Exception e) {
-                        String content = ProtocolUtils.getFileResponse(command,fileDescriptor,pathName,false,"the loader is no longer available in this case");
-                        sendInvalidProtocol(socketChannel, content);
-                        e.printStackTrace();
+
                     }
+                }catch (IOException e) {
+                    String content = ProtocolUtils.getInvalidProtocol("peer not found");
+                    sendInvalidProtocol(socketChannel, content);
+                    e.printStackTrace();
                 }
+                catch(NoSuchAlgorithmException nse){
+//                    String content = ProtocolUtils.getFileResponse(command,fileDescriptor,pathName,false,"the loader is no longer available in this case");
+//                    sendInvalidProtocol(socketChannel, content);
+                    nse.printStackTrace();
+                }
+
+
 
                 break;
             }
@@ -294,7 +327,67 @@ public class ServerMain implements FileSystemObserver {
                 break;
             }
             case "FILE_BYTES_REQUEST":{
+                try{
+                    InetSocketAddress socketAddress = (InetSocketAddress) socketChannel.getRemoteAddress();
+                    String ip = socketAddress.getAddress().toString();
+                    int port = socketAddress.getPort();
+                    HostPort hostPort = new HostPort(ip, port);
+                    if(peerSet.contains(hostPort.toDoc()))
+                    {
+                        String pathName = document.getString("pathName");
+                        int position = document.getInteger("position");
+                        int length = document.getInteger("length");
+                        if(position==0)
+                        {
+                            RequestState rs = new RequestState("FILE_CREATE_REQUEST",pathName);
+                            List<RequestState> list = stateMap.get(hostPort.toDoc().toJson());
+                            if(list.contains(rs))
+                            {
+                                //执行写byte的操作
+                                list.remove(rs);
+                                rs = new RequestState("FILE_BYTES_REQUEST",pathName, position, length);
+                                list.add(rs);
+                                stateMap.put(hostPort.toDoc().toJson(), list);
 
+                            }
+                            else
+                            {
+                                String content = ProtocolUtils.getInvalidProtocol("invalid message");
+                                sendInvalidProtocol(socketChannel, content);
+                                
+                            }
+                        }
+                        else if(position <= length-1)
+                        {
+                            RequestState rs = new RequestState("FILE_BYTES_REQUEST",pathName, position-1, length);
+                            List<RequestState> list = stateMap.get(hostPort.toDoc().toJson());
+                            if(list.contains(rs))
+                            {
+                                //执行写byte操作
+                                list.remove(rs);
+                                rs = new RequestState("FILE_BYTES_REQUEST",pathName, position, length);
+                                list.add(rs);
+                                stateMap.put(hostPort.toDoc().toJson(), list);
+                            }
+                        }
+                        else
+                        {
+                            String content = ProtocolUtils.getInvalidProtocol("position out of length!");
+                            sendInvalidProtocol(socketChannel, content);
+
+                        }
+                    }
+                    else
+                    {
+                        String content = ProtocolUtils.getInvalidProtocol("peer not found");
+                        sendInvalidProtocol(socketChannel, content);
+
+                    }
+                }catch(IOException ioe){
+                    String content = ProtocolUtils.getInvalidProtocol("can't get address");
+                    sendInvalidProtocol(socketChannel, content);
+                    ioe.printStackTrace();
+                }
                 break;
             }
             case "FILE_BYTES_RESPONSE":{
