@@ -9,10 +9,7 @@ import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.channels.SocketChannel;
 import java.security.NoSuchAlgorithmException;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.logging.Logger;
 
 /**
@@ -32,7 +29,12 @@ public class ServerMain implements FileSystemObserver {
      * Record connected hostPost 一会我把list改成set的数据结构，这样会更好
      */
     private ArrayList<Document> peerLists = new ArrayList<>();
+    /**
+     * 改好后的数据格式
+     */
+    private Set peerSet = Collections.synchronizedSet(new HashSet<Document>());
 
+    //
     /**
      * Record response/request history
      */
@@ -82,6 +84,7 @@ public class ServerMain implements FileSystemObserver {
         for (HostPort hostPort: hostPorts){
             String handshakeRequest = ProtocolUtils.getHandShakeRequest(hostPort.toDoc());
             client.sendRequest(handshakeRequest,hostPort.host,hostPort.port);
+
             // 此处需要更新状态机
             // ArrayList<String> requestRecords = new ArrayList<>();
             // requestRecords.add("HANDSHAKE_REQUEST");
@@ -113,8 +116,8 @@ public class ServerMain implements FileSystemObserver {
                     /**
                      * update existing connections
                      */
-                    if (peerLists.contains(hostPort.toDoc())){
-                        peerLists.remove(hostPort.toDoc());
+                    if (peerSet.contains(hostPort.toDoc())){
+                        peerSet.remove(hostPort.toDoc());
                     }
                 } catch (IOException e) {
                     e.printStackTrace();
@@ -147,7 +150,7 @@ public class ServerMain implements FileSystemObserver {
                     /**
                      * If the handshake has already been completed
                      */
-                    if (peerLists.contains(hostPort.toDoc())) {
+                    if (peerSet.contains(hostPort.toDoc())) {
                         String content = ProtocolUtils.getInvalidProtocol("handshaking has already been completed");
                         sendInvalidProtocol(socketChannel, content);
                     }
@@ -156,8 +159,9 @@ public class ServerMain implements FileSystemObserver {
                      */
                     // 这里 if 条件需要改， MAXIMUM_INCOMMING_CONNECTIONS 如果指的是被动连接数的话。。。
                     // 或者NIO来处理这个条件下的情况
-                    else if (peerLists.size() + 1 > MAXIMUM_INCOMMING_CONNECTIONS) {
-                        String content = ProtocolUtils.getConnectionRefusedRequest(peerLists);
+                    else if (peerSet.size() + 1 > MAXIMUM_INCOMMING_CONNECTIONS) {
+                        List list = new ArrayList(peerSet);
+                        String content = ProtocolUtils.getConnectionRefusedRequest(list);
                         client.replyRequest(socketChannel,content,true);
                         log.info("send CONNECTION_REFUSED");
                     }else{
@@ -166,7 +170,7 @@ public class ServerMain implements FileSystemObserver {
                          */
                         String content = ProtocolUtils.getHandShakeResponse(new HostPort(ip,port).toDoc());
                         client.replyRequest(socketChannel,content,false);
-                        peerLists.add(hostPort.toDoc());
+                        peerSet.add(hostPort.toDoc());
                         ArrayList<String> requestLists = new ArrayList<>();
                         history.put(socketChannel,requestLists);
                         log.info("send HANDSHAKE_RESPONSE");
@@ -186,8 +190,8 @@ public class ServerMain implements FileSystemObserver {
                      * get the hostport lists to this hostPort to see if there should be a response
                      */
                     ArrayList<String> requestLists = new ArrayList<>();
-                    if (hostPorts.contains(hostPort)&& !peerLists.contains(hostPort.toDoc())){
-                        peerLists.add(hostPort.toDoc());
+                    if (hostPorts.contains(hostPort)&& !peerSet.contains(hostPort.toDoc())){
+                        peerSet.add(hostPort.toDoc());
                         history.put(socketChannel,requestLists);
                         log.info("establish Connection");
                     }else{
