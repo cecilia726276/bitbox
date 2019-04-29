@@ -37,6 +37,8 @@ public class ServerMain implements FileSystemObserver {
      * response state map
      */
     private static ConcurrentHashMap<String, List<RequestState>> respStateMap = new ConcurrentHashMap<>();
+
+    private static List<String> existPathNameList = Collections.synchronizedList(new ArrayList());
     /**
      * Record connected hostPost 一会我把list改成set的数据结构，这样会更好
      */
@@ -250,7 +252,7 @@ public class ServerMain implements FileSystemObserver {
                 RequestState requestState2 = new RequestState("FILE_CREATE_MODIFY",pathName);
                 HostPort hostPort = getHostPort(socketChannel);
                 boolean isPeerOnTheList = checkOntheList(socketChannel);
-                if (isPeerOnTheList && !checkInReqStateMap(requestState1,hostPort) && !checkInReqStateMap(requestState2,hostPort)) {
+                if (isPeerOnTheList && !checkInReqStateMap(requestState1,hostPort) && !checkInReqStateMap(requestState2,hostPort) && !existPathNameList.contains(pathName)) {
                     Document fileDescriptor = (Document) document.get("fileDescriptor");
                     String md5 = fileDescriptor.getString("md5");
                     long fileSize = fileDescriptor.getLong("fileSize");
@@ -285,6 +287,7 @@ public class ServerMain implements FileSystemObserver {
 
                                         RequestState requestState = new RequestState("FILE_CREATE_REQUEST", pathName);
                                         stateMap.get(hostPort.toDoc().toJson()).add(requestState);
+                                        existPathNameList.add(pathName);
 
                                         client.replyRequest(socketChannel, fileBytesRequest, false);
                                     } else {
@@ -355,7 +358,7 @@ public class ServerMain implements FileSystemObserver {
                 HostPort hostPort = getHostPort(socketChannel);
 
                 boolean isPeerOnTheList = checkOntheList(socketChannel);
-                if (isPeerOnTheList && !checkInReqStateMap(requestState1,hostPort) && !checkInReqStateMap(requestState2,hostPort)) {
+                if (isPeerOnTheList && !checkInReqStateMap(requestState1,hostPort) && !checkInReqStateMap(requestState2,hostPort) && !existPathNameList.contains(pathName)) {
                     Document fileDescriptor = (Document) document.get("fileDescriptor");
                     String md5 = fileDescriptor.getString("md5");
                     long fileSize = fileDescriptor.getLong("fileSize");
@@ -373,6 +376,7 @@ public class ServerMain implements FileSystemObserver {
                                 // 此处需要更新状态机
                                 RequestState requestState = new RequestState("FILE_MODIFY_REQUEST", pathName);
                                 stateMap.get(hostPort.toDoc().toJson()).add(requestState);
+                                existPathNameList.add(pathName);
 
                                 client.replyRequest(socketChannel, fileBytesRequest, false);
                             } else {
@@ -639,6 +643,7 @@ public class ServerMain implements FileSystemObserver {
                     else{
                         list.remove(state);
                         respStateMap.put(key, list);
+                        existPathNameList.remove(pathName);
                     }
 
                 }
