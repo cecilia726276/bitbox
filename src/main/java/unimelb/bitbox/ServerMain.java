@@ -189,10 +189,10 @@ public class ServerMain implements FileSystemObserver {
                         client.replyRequest(socketChannel, content, false);
                         peerSet.add(hostPort.toDoc());
                         // 有了peerSet stateMap就不需要考虑peerSet
-                        if (!stateMap.containsKey(hostPort.toDoc().toJson())) {
-                            List<RequestState> list = Collections.synchronizedList(new ArrayList());
-                            stateMap.put(hostPort.toDoc().toJson(), list);
-                        }
+//                        if (!stateMap.containsKey(hostPort.toDoc().toJson())) {
+//                            List<RequestState> list = Collections.synchronizedList(new ArrayList());
+//                            stateMap.put(hostPort.toDoc().toJson(), list);
+//                        }
 
                         log.info("send HANDSHAKE_RESPONSE");
                     }
