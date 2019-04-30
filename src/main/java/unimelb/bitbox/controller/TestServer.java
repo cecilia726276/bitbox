@@ -1,5 +1,12 @@
 package unimelb.bitbox.controller;
 
+import unimelb.bitbox.ServerMain;
+import unimelb.bitbox.draft.Server;
+import unimelb.bitbox.util.SyncRunner;
+
+import java.io.IOException;
+import java.security.NoSuchAlgorithmException;
+
 public class TestServer {
 
     public static class ServerRun implements Runnable {
@@ -14,20 +21,33 @@ public class TestServer {
     }
 
     public static void main(String args[]) {
+        EventSelector eventSelector = EventSelectorImpl.getInstance();
+        ServerMain serverMain = null;
+        try {
+            serverMain = new ServerMain();
+        } catch (IOException e) {
+            e.printStackTrace();
+        } catch (NoSuchAlgorithmException e) {
+            e.printStackTrace();
+        }
+        ((EventSelectorImpl) eventSelector).setServerMain(serverMain);
         Thread thread = new Thread(new ServerRun());
         thread.start();
         System.out.println("start1");
-
+/*
         try {
             Thread.sleep(1000);
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
+        Thread thread1 = new Thread(new SyncRunner(null));
+        thread1.start();
         System.out.println("start2");
+        */
 //        EventSelector eventSelector = EventSelectorImpl.getInstance();
-        Client client = new ClientImpl();
-        client.sendRequest("hahahahah", "localhost", 8112);
-        client.sendRequest("heheheh", "localhost", 8112);
+    //    Client client = new ClientImpl();
+      //  client.sendRequest("hahahahah", "localhost", 8112);
+       // client.sendRequest("heheheh", "localhost", 8112);
 //        while(true) {
 //            try {
 //                Thread.sleep(1000);

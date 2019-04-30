@@ -1,9 +1,13 @@
 package unimelb.bitbox.controller;
 
+import unimelb.bitbox.ServerMain;
+
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
+import java.sql.Timestamp;
+import java.util.Date;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
 
@@ -47,4 +51,13 @@ public interface EventSelector {
      */
     public ExecutorService getFixedThreadPool();
 
-}
+    /**
+     * get timeout manager
+     * @return
+     */
+    public Map<SocketChannel, Date> getTimeoutManager();
+
+    public ServerMain getServerMain();
+
+
+    }
