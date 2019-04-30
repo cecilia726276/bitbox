@@ -15,6 +15,7 @@ import java.util.concurrent.*;
 public class EventSelectorImpl implements EventSelector {
 
     private Selector selector;
+
     private ExecutorService fixedThreadPool;
     private static EventSelectorImpl eventSelector = null;
     public Map<SelectionKey, Boolean> handingMap;
@@ -97,7 +98,10 @@ public class EventSelectorImpl implements EventSelector {
         return true;
     }
 
-
+    @Override
+    public ExecutorService getFixedThreadPool() {
+        return fixedThreadPool;
+    }
 
     /**
      * register socketChannel
@@ -149,20 +153,19 @@ public class EventSelectorImpl implements EventSelector {
 
                     SelectionKey key = (SelectionKey) keyIterator.next();
                     if (!key.isValid()) {
-                        System.out.println("valid"+key.hashCode());
                         continue;
                     }
                     if (handingMap.get(key) != null) {
                         keyIterator.remove();
                         continue;
                     }
-//                    System.out.println(key.hashCode());
                     handingMap.put(key, true);
                     EventHandler eventHandler = new EventHandler(key);
 //                    eventHandler.run();
                     fixedThreadPool.execute(eventHandler);
                     keyIterator.remove();
                 }
+                selectedKeys.clear();
             }
         }
     }

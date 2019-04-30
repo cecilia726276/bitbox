@@ -809,5 +809,15 @@ public class ServerMain implements FileSystemObserver {
         return false;
     }
 
+    /**
+     * manage sync request
+     */
+    public void syncProcess() {
+        List<FileSystemManager.FileSystemEvent> list = fileSystemManager.generateSyncEvents();
+        for (FileSystemManager.FileSystemEvent fileSystemEvent : list) {
+            processFileSystemEvent(fileSystemEvent);
+        }
+    }
+
 
 }
