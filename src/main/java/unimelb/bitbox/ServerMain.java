@@ -13,7 +13,6 @@ import java.security.NoSuchAlgorithmException;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Logger;
-import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * ServerMain is used to process file system event and message from socket channel.
@@ -22,14 +21,13 @@ import java.util.concurrent.ConcurrentHashMap;
 public class ServerMain implements FileSystemObserver {
     private static Logger log = Logger.getLogger(ServerMain.class.getName());
     protected FileSystemManager fileSystemManager;
-// 场景：如果I/O是并行的，两个同名文件传过来了，这样会同时创建filecreateloader。。。
-    // 心跳包
 
 //    /**
 //     * Record the corresponding HostPort according to SocketChannel.
 //     */
 //    private ConcurrentHashMap<SocketChannel,HostPort> channelTable = new ConcurrentHashMap<>();
     //private List<RequestState> list = Collections.synchronizedList(new ArrayList());
+
     /**
      * request state map
      */
@@ -40,19 +38,17 @@ public class ServerMain implements FileSystemObserver {
     private static ConcurrentHashMap<String, List<RequestState>> respStateMap = new ConcurrentHashMap<>();
 
     private static List<String> existPathNameList = Collections.synchronizedList(new ArrayList());
+
     /**
-     * Record connected hostPost 一会我把list改成set的数据结构，这样会更好
-     */
-    private ArrayList<Document> peerLists = new ArrayList<>();
-    /**
-     * 改好后的数据格式
+     * Record current connections
      */
     private Set peerSet = Collections.synchronizedSet(new HashSet<Document>());
 
     /**
-     * in charge of incoming connections
+     * Record the sending history of HANDSHAKE_REQUEST to other peers to validate the received HANDSHAKE_RESPONSE
      */
-    private Set incomingPeerSet = Collections.synchronizedSet(new HashSet<Document>());
+    private Set handshakeReqHistory = Collections.synchronizedSet(new HashSet<HostPort>());
+
 
     /**
      * in charge of bytes transfer (我这个只是临时设计，会有潜在安全问题)
@@ -60,7 +56,7 @@ public class ServerMain implements FileSystemObserver {
     private ConcurrentHashMap<String, Integer> fileTransferTable = new ConcurrentHashMap<>();
 
     /**
-     * Record response/request history
+     * Record handshake response/request history
      */
     private Map<SocketChannel, ArrayList<String>> history = new HashMap<>();
 
@@ -109,11 +105,11 @@ public class ServerMain implements FileSystemObserver {
         for (HostPort hostPort: hostPorts){
             String handshakeRequest = ProtocolUtils.getHandShakeRequest(hostPort.toDoc());
             client.sendRequest(handshakeRequest,hostPort.host,hostPort.port);
+            /**
+             * The peer records the sending history to other peers.
+             */
+            handshakeReqHistory.add(hostPort);
 
-            // 此处需要更新状态机 - 记录发送过的握手请求
-            // ArrayList<String> requestRecords = new ArrayList<>();
-            // requestRecords.add("HANDSHAKE_REQUEST");
-            // history.put(hostPort,requestRecords);
         }
 
     }
@@ -133,23 +129,27 @@ public class ServerMain implements FileSystemObserver {
             case "INVALID_PROTOCOL": {
                 log.info(command + document.getString("message"));
                 deletePeer(socketChannel);
-                // 此处需要更新状态机 - 知道这个invalid protocol 对应的是哪个request失败了
                 break;
             }
             case "CONNECTION_REFUSED": {
                 log.info(command + document.getString("message"));
                 log.info("Peers in connection: " + document.getString("message"));
-                // 连接失败
-                // 此处需要判断状态机 - 确认自己是否和这个peer发起过握手请求，没有发送过请求需要发送invalid_protocol，如果发送过，就尝试和这个peer的邻居建立连接
-                boolean handshakeBefore = true;
+
+                /**
+                 * Check if it has sent a handshake request before.
+                 * yes - attempt to establish connection with its neighbour
+                 * no - send invalid_protocol
+                 */
+
+                boolean handshakeBefore = checkOntheList(socketChannel, handshakeReqHistory);
                 if (handshakeBefore) {
                     List<Document> existingPeers = (List<Document>) document.get("message");
                     HostPort firstPeers = new HostPort(existingPeers.get(0));
                     String handshakeRequest = ProtocolUtils.getHandShakeRequest(firstPeers.toDoc());
                     client.sendRequest(handshakeRequest, firstPeers.host, firstPeers.port);
                     // The peer that tried to connect should do a breadth first search of peers in the peers list, attempt to make a connection to one of them.
-                    // 发送新请求，我就选了列表里的第一个peer发送请求
-                    // 此处需要更新状态机 - 记录自己发送了handshakerequest
+                    handshakeReqHistory.add(new HostPort(firstPeers.host,firstPeers.port));
+
                 } else {
                     String invalidResponse = ProtocolUtils.getInvalidProtocol("Not waiting for a handshake response from this peer");
                     sendRejectResponse(socketChannel, invalidResponse);
@@ -158,8 +158,7 @@ public class ServerMain implements FileSystemObserver {
             }
             case "HANDSHAKE_REQUEST": {
                 log.info(command);
-                HostPort hostPort = (HostPort) document.get("hostPort");
-
+                HostPort hostPort = new HostPort((Document) document.get("hostPort"));
                 /**
                  * If the hostPort is valid
                  */
@@ -170,72 +169,60 @@ public class ServerMain implements FileSystemObserver {
                     if (peerSet.contains(hostPort.toDoc())) {
                         String content = ProtocolUtils.getInvalidProtocol("handshaking has already been completed");
                         sendRejectResponse(socketChannel, content);
-                        // 此处需要更新状态机 - 删除和这个peer的socket记录，总之要体现链接已经断开了
+                        // Delete the corresponding host port in the peerSet, close the socket
                     }
                     /**
                      * If the maximum incomming connections have been reached:
                      */
-                    // 目前由ServerMain来记录管理incoming connection & existing connection
-                    else if (incomingPeerSet.size() + 1 > MAXIMUM_INCOMMING_CONNECTIONS) {
+                    else if (peerSet.size() + 1 > MAXIMUM_INCOMMING_CONNECTIONS) {
                         List list = new ArrayList(peerSet);
                         String content = ProtocolUtils.getConnectionRefusedRequest(list);
                         client.replyRequest(socketChannel, content, true);
-                        // 此处需要更新状态机吗？ - 因为发送这个请求并不会收到回复，记录这个请求没有什么作用，此处可以不用更新
                         log.info("send CONNECTION_REFUSED");
                     } else {
                         /**
                          * If everything is fine, establish the connection and send back handshake response
                          */
                         String content = ProtocolUtils.getHandShakeResponse(new HostPort(ip, port).toDoc());
-                        client.replyRequest(socketChannel, content, true);
-                        // 返回handshake response的时候是直接close socket的没错吧？
-                        // 此处需要更新状态机吗？ - 因为发送这个请求并不会收到回复，记录这个请求没有什么作用，此处可以不用更新
+                        client.replyRequest(socketChannel, content, false);
                         peerSet.add(hostPort.toDoc());
-                        incomingPeerSet.add(hostPort.toDoc());
-                        // ArrayList<String> requestLists = new ArrayList<>();
-                        // history.put(socketChannel,requestLists);
+                        // 有了peerSet stateMap就不需要考虑peerSet
+                        if (!stateMap.containsKey(hostPort.toDoc().toJson())) {
+                            List<RequestState> list = Collections.synchronizedList(new ArrayList());
+                            stateMap.put(hostPort.toDoc().toJson(), list);
+                        }
 
-                        ArrayList<String> requestLists = new ArrayList<>();
-                        history.put(socketChannel, requestLists);
                         log.info("send HANDSHAKE_RESPONSE");
                     }
                 } else {
                     String content = ProtocolUtils.getInvalidProtocol("message must contain a command field as string");
                     sendRejectResponse(socketChannel, content);
                 }
-
                 break;
             }
             case "HANDSHAKE_RESPONSE": {
                 log.info(command);
-                HostPort hostPort = (HostPort) document.get("hostPort");
+                HostPort hostPort = new HostPort((Document) document.get("hostPort"));
 
                 if (hostPort != null) {
                     /**
                      * get the hostport lists to this hostPort to see if there should be a response
                      */
-                    // 此处需要判断状态机 - 得出结果放在sentRequestBefore里：确认自己是否和这个peer发起过握手请求，没有发送过请求需要发送invalid_protocol，如果发送过，就和这个peer建立连接
-                    boolean sentRequestBefore = hostPorts.contains(hostPort) && !peerSet.contains(hostPort.toDoc());
-                    // ArrayList<String> requestLists = new ArrayList<>();
+                    boolean sentRequestBefore = handshakeReqHistory.contains(hostPort) && !peerSet.contains(hostPort.toDoc());
                     if (sentRequestBefore) {
                         peerSet.add(hostPort.toDoc());
-                        // history.put(socketChannel,requestLists);
-                        // 此处需要更新状态机 - 这里可以根据socketChannel建立状态机的 ConcurrentHashMap
                         if (!respStateMap.containsKey(hostPort.toDoc().toJson())) {
                             List<RequestState> list = Collections.synchronizedList(new ArrayList());
                             respStateMap.put(hostPort.toDoc().toJson(), list);
                         }
-                        //history.put(socketChannel,requestLists);
                         log.info("establish Connection");
                     } else {
-                        String content = ProtocolUtils.getInvalidProtocol("Invalid handshake response, no request has been sent before.");
+                        String content = ProtocolUtils.getInvalidProtocol("Invalid handshake response.");
                         sendRejectResponse(socketChannel, content);
-                        // 此处需要更新状态机吗？ - 因为发送这个请求并不会收到回复，记录这个请求没有什么作用，此处可以不用更新
                     }
                 } else {
                     String content = ProtocolUtils.getInvalidProtocol("message must contain a command field as string");
                     sendRejectResponse(socketChannel, content);
-                    // 此处需要更新状态机吗？ - 因为发送这个请求并不会收到回复，记录这个请求没有什么作用，此处可以不用更新
                 }
                 break;
             }
@@ -249,7 +236,7 @@ public class ServerMain implements FileSystemObserver {
                 RequestState requestState1 = new RequestState("FILE_CREATE_REQUEST",pathName);
                 RequestState requestState2 = new RequestState("FILE_CREATE_MODIFY",pathName);
                 HostPort hostPort = getHostPort(socketChannel);
-                boolean isPeerOnTheList = checkOntheList(socketChannel);
+                boolean isPeerOnTheList = checkOntheList(socketChannel,peerSet);
                 if (isPeerOnTheList && !checkInReqStateMap(requestState1,hostPort) && !checkInReqStateMap(requestState2,hostPort) && !existPathNameList.contains(pathName)) {
                     Document fileDescriptor = (Document) document.get("fileDescriptor");
                     String md5 = fileDescriptor.getString("md5");
@@ -270,7 +257,6 @@ public class ServerMain implements FileSystemObserver {
                                     fileSystemManager.cancelFileLoader(pathName);
                                     String fileResponse = ProtocolUtils.getFileResponse("FILE_CREATE_RESPONSE", fileDescriptor, pathName, true, "file create complete");
                                     client.replyRequest(socketChannel, fileResponse, true);
-                                    // 此处需要更新状态机吗？ - 因为发送这个请求并不会收到回复，记录这个请求没有什么作用，此处可以不用更新
                                 } else {
                                     if (status) {
                                         String fileResponse = ProtocolUtils.getFileResponse("FILE_CREATE_RESPONSE", fileDescriptor, pathName, true, "file loader ready");
@@ -334,7 +320,7 @@ public class ServerMain implements FileSystemObserver {
             }
             case "FILE_DELETE_REQUEST": {
                 log.info(command);
-                boolean isPeerOnTheList = checkOntheList(socketChannel);
+                boolean isPeerOnTheList = checkOntheList(socketChannel,peerSet);
                 if (isPeerOnTheList) {
                     Document fileDescriptor = (Document) document.get("fileDescriptor");
                     String md5 = fileDescriptor.getString("md5");
@@ -370,7 +356,7 @@ public class ServerMain implements FileSystemObserver {
                 RequestState requestState2 = new RequestState("FILE_CREATE_MODIFY",pathName);
                 HostPort hostPort = getHostPort(socketChannel);
 
-                boolean isPeerOnTheList = checkOntheList(socketChannel);
+                boolean isPeerOnTheList = checkOntheList(socketChannel,peerSet);
                 if (isPeerOnTheList && !checkInReqStateMap(requestState1,hostPort) && !checkInReqStateMap(requestState2,hostPort) && !existPathNameList.contains(pathName)) {
                     Document fileDescriptor = (Document) document.get("fileDescriptor");
                     String md5 = fileDescriptor.getString("md5");
@@ -432,7 +418,7 @@ public class ServerMain implements FileSystemObserver {
             }
             case "DIRECTORY_CREATE_REQUEST": {
                 log.info(command);
-                boolean isPeerOnTheList = checkOntheList(socketChannel);
+                boolean isPeerOnTheList = checkOntheList(socketChannel,peerSet);
                 if (isPeerOnTheList) {
                     String pathName = document.getString("pathName");
                     if (!fileSystemManager.dirNameExists(pathName)) {
@@ -460,7 +446,7 @@ public class ServerMain implements FileSystemObserver {
             }
             case "DIRECTORY_DELETE_REQUEST": {
                 log.info(command);
-                boolean isPeerOnTheList = checkOntheList(socketChannel);
+                boolean isPeerOnTheList = checkOntheList(socketChannel,peerSet);
                 if (isPeerOnTheList) {
                     String pathName = document.getString("pathName");
                     if (fileSystemManager.dirNameExists(pathName)) {
@@ -528,9 +514,9 @@ public class ServerMain implements FileSystemObserver {
                                         client.replyRequest(socketChannel, packet, false);
                                         if (list.contains(rs1)) {
                                             list.remove(rs1);
-                                        } else
+                                        } else {
                                             list.remove(rs2);
-
+                                        }
                                         rs1 = new RequestState("FILE_BYTES_RESPONSE", pathName, position, length);
                                         list.add(rs1);
                                         stateMap.put(hostPort.toDoc().toJson(), list);
@@ -717,11 +703,11 @@ public class ServerMain implements FileSystemObserver {
 //            sendRejectResponse(socketChannel, content);
 //        }
     }
-    private boolean checkOntheList(SocketChannel socketChannel) {
+    private boolean checkOntheList(SocketChannel socketChannel, Set set) {
         boolean isPeerOnTheList = false;
         try {
             HostPort hostPort = retrieveHostport(socketChannel);
-            isPeerOnTheList = peerSet.contains(hostPort.toDoc());
+            isPeerOnTheList = set.contains(hostPort.toDoc());
         } catch (IOException e) {
             e.printStackTrace();
             String content = ProtocolUtils.getInvalidProtocol("Invalid peer Address");
@@ -764,12 +750,10 @@ public class ServerMain implements FileSystemObserver {
             if (peerSet.contains(hostPort.toDoc())){
                 peerSet.remove(hostPort.toDoc());
             }
-            if (incomingPeerSet.contains(hostPort.toDoc())){
-                incomingPeerSet.remove(hostPort.toDoc());
-            }
         } catch (IOException e) {
             e.printStackTrace();
         }
+        client.closeSocket(socketChannel);
     }
 
 
@@ -855,6 +839,16 @@ public class ServerMain implements FileSystemObserver {
         if(list.contains(requestState))
             return true;
         return false;
+    }
+
+    /**
+     * manage sync request
+     */
+    public void syncProcess() {
+        List<FileSystemManager.FileSystemEvent> list = fileSystemManager.generateSyncEvents();
+        for (FileSystemManager.FileSystemEvent fileSystemEvent : list) {
+            processFileSystemEvent(fileSystemEvent);
+        }
     }
 
 

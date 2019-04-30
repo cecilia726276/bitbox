@@ -59,7 +59,7 @@ public class ProtocolUtils {
      * @return String of HANDSHAKE_RESPONSE
      */
     public static String getHandShakeResponse(Document hostPort){
-        Document totalReqBody = new Document();;
+        Document totalReqBody = new Document();
         totalReqBody.append("command", "HANDSHAKE_RESPONSE");
         totalReqBody.append("hostPort", hostPort);
         return totalReqBody.toJson();
