@@ -5,6 +5,7 @@ import unimelb.bitbox.message.Coder;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.*;
+import java.util.Date;
 import java.util.Map;
 
 public class EventHandler implements Runnable{
@@ -16,12 +17,18 @@ public class EventHandler implements Runnable{
         this.selectionKey = selectionKey;
         this.selector = EventSelectorImpl.getInstance();
         if (selectionKey.isAcceptable()) {
+            System.out.println("ACCEPT");
             event = SelectionKey.OP_ACCEPT;
         } else if (selectionKey.isReadable()) {
+            System.out.println("READ");
+            selector.getTimeoutManager().remove(selectionKey.channel());
             event = SelectionKey.OP_READ;
         } else if (selectionKey.isConnectable()) {
+            System.out.println("CONNECT");
+            selector.getTimeoutManager().remove(selectionKey.channel());
             event = SelectionKey.OP_CONNECT;
         } else if (selectionKey.isWritable()) {
+            System.out.println("WRITE");
             event = SelectionKey.OP_WRITE;
         }
     }
@@ -54,7 +61,6 @@ public class EventHandler implements Runnable{
                 e.printStackTrace();
             }
         }
-//        writeOperation();
         CommonOperation.registerWrite((SocketChannel) selectionKey.channel(), content, false, selector);
     }
     private void writeOperation () {
@@ -68,7 +74,7 @@ public class EventHandler implements Runnable{
         byteBuffer.flip();
         try {
             socketChannel.write(byteBuffer);
-
+            System.out.println("Wirte："+content);
         } catch (IOException e) {
             e.printStackTrace();
         } finally {
@@ -79,35 +85,54 @@ public class EventHandler implements Runnable{
                     selector.removeConnection(socketChannel);
 //                    selectionKey.cancel();
                 } else {
+                    System.out.println("i want read again");
+                    selector.getTimeoutManager().put(socketChannel,new Date());
                     CommonOperation.registerRead(socketChannel, selector);
                 }
             }
-            try {
+
+        /*    try {
                 socketChannel.close();
             } catch (IOException e) {
                 e.printStackTrace();
-            }
+            }*/
         }
     }
     private void readOperation () {
+        System.out.println("read");
         // a channel is ready for reading
-        ByteBuffer byteBuffer = ByteBuffer.allocate(1024);
+        ByteBuffer byteBuffer = ByteBuffer.allocate(1048576);
         SocketChannel socketChannel = (SocketChannel) selectionKey.channel();
         try {
             StringBuffer hhd = new StringBuffer();
-            while (socketChannel.read(byteBuffer) != -1) {
-                if (byteBuffer.hasRemaining()) {
-                    byteBuffer.flip();
-
-                    hhd.append(Coder.INSTANCE.getDecoder().decode(byteBuffer).toString());
-                    byteBuffer.flip();
-                    byteBuffer.clear();
-
-                }
+          //  while (socketChannel.read(byteBuffer) != -1) {
+            int num = socketChannel.read(byteBuffer);
+            if (num == -1) {
+                socketChannel.close();
+                return;
             }
-            selectionKey.interestOps(selectionKey.interestOps() & ~SelectionKey.OP_READ);
+            if (byteBuffer.hasRemaining()) {
+                byteBuffer.flip();
+
+                hhd.append(Coder.INSTANCE.getDecoder().decode(byteBuffer).toString());
+             //   System.out.println(hhd.toString());
+
+                byteBuffer.flip();
+                byteBuffer.clear();
+
+            }
+         //   }
             // need the interface of message process
             System.out.println(hhd.toString());
+            if (hhd.toString().length() == 0) {
+                System.out.println("zero problem "+num);
+                return;
+            }
+         //   selectionKey.interestOps(selectionKey.interestOps() & ~SelectionKey.OP_READ);
+
+            if(selector.getServerMain()!=null){
+                selector.getServerMain().processRequest(socketChannel,hhd.toString());
+            }
 
 //            socketChannel.close();
         } catch (IOException e) {

@@ -1,12 +1,15 @@
 package unimelb.bitbox.controller;
 
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
+import unimelb.bitbox.ServerMain;
 import unimelb.bitbox.util.Configuration;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.ServerSocket;
 import java.nio.channels.*;
+import java.sql.Timestamp;
+import java.util.Date;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
@@ -16,10 +19,24 @@ public class EventSelectorImpl implements EventSelector {
 
     private Selector selector;
 
+    @Override
+    public ServerMain getServerMain() {
+        return serverMain;
+    }
+
+    public void setServerMain(ServerMain serverMain) {
+        this.serverMain = serverMain;
+    }
+
+    private ServerMain serverMain;
     private ExecutorService fixedThreadPool;
     private static EventSelectorImpl eventSelector = null;
     public Map<SelectionKey, Boolean> handingMap;
     public Map<SocketChannel, Boolean> connectionGroup;
+
+    //
+    public Map<SocketChannel, Date> timeoutManager;
+
 
     // configure params
     private Integer port;
@@ -39,6 +56,10 @@ public class EventSelectorImpl implements EventSelector {
     @Override
     public Selector getSelector() {
         return selector;
+    }
+    @Override
+    public Map<SocketChannel, Date> getTimeoutManager() {
+        return timeoutManager;
     }
 
     @Override
@@ -78,15 +99,17 @@ public class EventSelectorImpl implements EventSelector {
             selector = Selector.open();
             handingMap = new ConcurrentHashMap<>();
             connectionGroup = new ConcurrentHashMap<>();
+            timeoutManager = new ConcurrentHashMap<>();
         } catch (IOException e) {
             e.printStackTrace();
         }
     }
 
+
     private boolean initThreadPool () {
         ThreadFactory namedThreadFactory = new ThreadFactoryBuilder()
                 .setNameFormat("handler-pool-%d").build();
-        fixedThreadPool = new ThreadPoolExecutor(5, 200,
+        fixedThreadPool = new ThreadPoolExecutor(6, 200,
                 0L, TimeUnit.MILLISECONDS,
                 new LinkedBlockingQueue<Runnable>(1024), namedThreadFactory, new ThreadPoolExecutor.AbortPolicy());
         return true;
