@@ -110,6 +110,9 @@ public class ServerMain implements FileSystemObserver {
              * The peer records the sending history to other peers.
              */
             handshakeReqHistory.add(hostPort);
+            log.info("contains: " + handshakeReqHistory.contains(hostPort));
+            log.info("host: " + hostPort.host + "port: "+ hostPort.port);
+
 
         }
 
@@ -205,15 +208,12 @@ public class ServerMain implements FileSystemObserver {
                 log.info(command);
                 HostPort hostPort = new HostPort((Document) document.get("hostPort"));
                 log.info("from hostport: " + hostPort.host + " port: " + hostPort.port);
-                Iterator<HostPort> it = handshakeReqHistory.iterator();
-                while(it.hasNext()){
-                    log.info(it.toString());
-                }
                 if (hostPort != null) {
                     /**
                      * get the hostport lists to this hostPort to see if there should be a response
                      */
                     boolean sentRequestBefore = handshakeReqHistory.contains(hostPort) && !peerSet.contains(hostPort.toDoc());
+                    log.info("handshakeReqHistory: "+ handshakeReqHistory.contains(hostPort) + "not contained in peerset: "+!peerSet.contains(hostPort.toDoc()));
                     if (sentRequestBefore) {
                         peerSet.add(hostPort.toDoc());
                         if (!respStateMap.containsKey(hostPort.toDoc().toJson())) {
