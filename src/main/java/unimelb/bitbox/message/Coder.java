@@ -1,23 +1,24 @@
 package unimelb.bitbox.message;
 
-import java.nio.charset.Charset;
-import java.nio.charset.CharsetDecoder;
+import java.util.Base64;
 
 public enum Coder {
     /**
-     * from ByteBuffer to String
+     * transfer between ByteBuffer and String
      * @param byteBuffer
      * @return
      */
+
     INSTANCE;
 
-    private CharsetDecoder decoder;
+    Base64.Encoder encoder = Base64.getEncoder();
+    Base64.Decoder decoder = Base64.getDecoder();
 
-    Coder(){
-        this.decoder = Charset.forName("utf8").newDecoder();
+    public Base64.Decoder getDecoder(){
+        return decoder;
     }
 
-    public CharsetDecoder getDecoder(){
-        return decoder;
+    public Base64.Encoder getEncoder() {
+        return encoder;
     }
 }
