@@ -127,7 +127,7 @@ public class ProtocolUtils {
      * @param status
      * @return String of FILE_BYTES_RESPONSE
      */
-    public static String getFileBytesResponse(Document fileDescriptor, String pathName, Integer position, Integer length, String content, String message, Boolean status){
+    public static String getFileBytesResponse(Document fileDescriptor, String pathName, long position, long length, String content, String message, Boolean status){
         Document totalReqBody = new Document();
         totalReqBody.append("command", "FILE_BYTES_RESPONSE");
         totalReqBody.append("fileDescriptor", fileDescriptor);
