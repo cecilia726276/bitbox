@@ -2,6 +2,7 @@ package unimelb.bitbox;
 
 import unimelb.bitbox.controller.ClientImpl;
 import unimelb.bitbox.message.Coder;
+import unimelb.bitbox.message.FileCoder;
 import unimelb.bitbox.message.ProtocolUtils;
 import unimelb.bitbox.util.*;
 import unimelb.bitbox.util.FileSystemManager.FileSystemEvent;
@@ -514,7 +515,7 @@ public class ServerMain implements FileSystemObserver {
                                 long lastModified = fileDescriptor.getLong("lastModified");
                            //     if (fileSystemManager.fileNameExists(pathName, md5)) {
                                     try {
-                                        String content = Coder.INSTANCE.getEncoder().encode(fileSystemManager.readFile(md5, position, length)).toString();
+                                        String content = FileCoder.INSTANCE.getEncoder().encode(fileSystemManager.readFile(md5, position, length)).toString();
                                         String message = "successful read";
                                         String packet = ProtocolUtils.getFileBytesResponse(fileDescriptor, pathName, position, length, content, message, true);
                                         client.replyRequest(socketChannel, packet, false);
@@ -549,7 +550,7 @@ public class ServerMain implements FileSystemObserver {
                                 long lastModified = fileDescriptor.getLong("lastModified");
                            //     if (fileSystemManager.fileNameExists(pathName, md5)) {
                                     try {
-                                        String content = Coder.INSTANCE.getEncoder().encode(fileSystemManager.readFile(md5, position, length)).toString();
+                                        String content = FileCoder.INSTANCE.getEncoder().encode(fileSystemManager.readFile(md5, position, length)).toString();
                                         String message = "successful read";
                                         String packet = ProtocolUtils.getFileBytesResponse(fileDescriptor, pathName, position, length, content, message, true);
                                         client.replyRequest(socketChannel,packet,false);
@@ -612,7 +613,7 @@ public class ServerMain implements FileSystemObserver {
                             if(status)
                             {
                                 String content = document.getString("content");
-                                byte[] buf = Coder.INSTANCE.getDecoder().decode(content);
+                                byte[] buf = FileCoder.INSTANCE.getDecoder().decode(content);
                                 ByteBuffer src = ByteBuffer.wrap(buf);
                                 try{
                                     if(fileSystemManager.writeFile(pathName,src, pos)){
