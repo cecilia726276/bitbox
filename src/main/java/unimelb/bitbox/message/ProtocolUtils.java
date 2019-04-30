@@ -106,7 +106,7 @@ public class ProtocolUtils {
      * @param length
      * @return String of FILE_BYTES_REQUEST
      */
-    public static String getFileBytesRequest(Document fileDescriptor, String pathName, Integer position, Integer length){
+    public static String getFileBytesRequest(Document fileDescriptor, String pathName, long position, long length){
         Document totalReqBody = new Document();
         totalReqBody.append("command", "FILE_BYTES_REQUEST");
         totalReqBody.append("fileDescriptor", fileDescriptor);
