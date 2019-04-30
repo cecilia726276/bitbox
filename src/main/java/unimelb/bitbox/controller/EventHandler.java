@@ -30,6 +30,7 @@ public class EventHandler implements Runnable{
         ServerSocketChannel serverSocketChannel = (ServerSocketChannel) selectionKey.channel();
         try {
             SocketChannel socketChannel = serverSocketChannel.accept();
+         //   System.out.println(socketChannel.socket().getLocalAddress()+":"+socketChannel.socket().getPort());
             if (!selector.createConnection(socketChannel)) {
                 System.out.println("the number of connection is too much");
                 return;

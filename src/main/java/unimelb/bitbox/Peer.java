@@ -1,6 +1,9 @@
 package unimelb.bitbox;
 
+import unimelb.bitbox.controller.EventSelector;
+import unimelb.bitbox.controller.EventSelectorImpl;
 import unimelb.bitbox.util.Configuration;
+import unimelb.bitbox.util.SyncRunner;
 
 import java.io.IOException;
 import java.security.NoSuchAlgorithmException;
@@ -16,10 +19,11 @@ public class Peer
         log.info("BitBox Peer starting...");
         Configuration.getConfiguration();
 
-//        EventSelector eventSelector = EventSelectorImpl.getInstance();
+       EventSelector eventSelector = EventSelectorImpl.getInstance();
 //        eventSelector.controllerRunning();
 
-        new ServerMain();
-
+        ServerMain serverMain = new ServerMain();
+        SyncRunner syncRunner = new SyncRunner(serverMain);
+        eventSelector.getFixedThreadPool().execute(syncRunner);
     }
 }
