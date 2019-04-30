@@ -53,7 +53,7 @@ public class ServerMain implements FileSystemObserver {
     /**
      * in charge of bytes transfer (我这个只是临时设计，会有潜在安全问题)
      */
-    private ConcurrentHashMap<String, Integer> fileTransferTable = new ConcurrentHashMap<>();
+    private ConcurrentHashMap<String, Long> fileTransferTable = new ConcurrentHashMap<>();
 
     /**
      * Record handshake response/request history
@@ -151,7 +151,6 @@ public class ServerMain implements FileSystemObserver {
                     log.info("send handshake request");
                     // The peer that tried to connect should do a breadth first search of peers in the peers list, attempt to make a connection to one of them.
                     handshakeReqHistory.add(new HostPort(firstPeers.host,firstPeers.port));
-
                 } else {
                     String invalidResponse = ProtocolUtils.getInvalidProtocol("Not waiting for a handshake response from this peer");
                     sendRejectResponse(socketChannel, invalidResponse);
@@ -205,7 +204,11 @@ public class ServerMain implements FileSystemObserver {
             case "HANDSHAKE_RESPONSE": {
                 log.info(command);
                 HostPort hostPort = new HostPort((Document) document.get("hostPort"));
-
+                log.info("from hostport: " + hostPort.host + " port: " + hostPort.port);
+                Iterator<HostPort> it = handshakeReqHistory.iterator();
+                while(it.hasNext()){
+                    log.info(it.toString());
+                }
                 if (hostPort != null) {
                     /**
                      * get the hostport lists to this hostPort to see if there should be a response
@@ -269,9 +272,12 @@ public class ServerMain implements FileSystemObserver {
                                         /**
                                          * Else start requesting bytes
                                          */
-                                        Integer length = (int) fileSize / blockSize;
-                                        fileTransferTable.put(fileDescriptor.toJson(), length);
-                                        String fileBytesRequest = ProtocolUtils.getFileBytesRequest(fileDescriptor, pathName, 0, length);
+                                        if (fileSize / blockSize > 1) {
+                                            fileSize = blockSize;
+                                            fileTransferTable.put(fileDescriptor.toJson(), fileSize);
+                                        }
+
+                                        String fileBytesRequest = ProtocolUtils.getFileBytesRequest(fileDescriptor, pathName, 0L, fileSize);
                                         // 此处需要更新状态机
 
                                         RequestState requestState = new RequestState("FILE_CREATE_REQUEST", pathName);
@@ -374,10 +380,12 @@ public class ServerMain implements FileSystemObserver {
                             if (status) {
                                 String content = ProtocolUtils.getFileResponse("FILE_MODIFY_RESPONSE", fileDescriptor, pathName, status, "Modify File Loader");
                                 client.replyRequest(socketChannel, content, false);
-                                Integer length = (int) fileSize / blockSize;
-                                fileTransferTable.put(fileDescriptor.toJson(), length);
-                                String fileBytesRequest = ProtocolUtils.getFileBytesRequest(fileDescriptor, pathName, 0, length);
-                                // 此处需要更新状态机
+                                if (fileSize / blockSize > 1) {
+                                    fileSize = blockSize;
+                                    fileTransferTable.put(fileDescriptor.toJson(), fileSize);
+                                }
+
+                                String fileBytesRequest = ProtocolUtils.getFileBytesRequest(fileDescriptor, pathName, 0L, fileSize);
                                 RequestState requestState = new RequestState("FILE_MODIFY_REQUEST", pathName);
                                 stateMap.get(hostPort.toDoc().toJson()).add(requestState);
                                 existPathNameList.add(pathName);
@@ -593,6 +601,7 @@ public class ServerMain implements FileSystemObserver {
                 break;
             }
             case "FILE_BYTES_RESPONSE":{
+
                 processCDResponse(document, command, socketChannel);
                 break;
             }
@@ -769,7 +778,6 @@ public class ServerMain implements FileSystemObserver {
         } catch (IOException e) {
             e.printStackTrace();
         }
-        client.closeSocket(socketChannel);
     }
 
 
