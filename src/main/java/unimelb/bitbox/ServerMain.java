@@ -266,8 +266,15 @@ public class ServerMain implements FileSystemObserver {
                                         /**
                                          * Else start requesting bytes
                                          */
-                                        Integer length = (int) fileSize / blockSize;
-                                        fileTransferTable.put(fileDescriptor.toJson(), length);
+                                        long length = fileSize;
+                                        if(fileSize / blockSize > 1){
+                                            length = blockSize;
+                                            fileTransferTable.put(fileDescriptor.toJson(), (int)length);
+                                        }
+
+
+                                        //Integer length = (int) fileSize / blockSize;
+
                                         String fileBytesRequest = ProtocolUtils.getFileBytesRequest(fileDescriptor, pathName, 0, length);
                                         // 此处需要更新状态机--已更新
 //                                        stateMap.get(hostPort.toDoc().toJson()).add(requestState);
@@ -380,9 +387,9 @@ public class ServerMain implements FileSystemObserver {
                                 fileTransferTable.put(fileDescriptor.toJson(), length);
                                 String fileBytesRequest = ProtocolUtils.getFileBytesRequest(fileDescriptor, pathName, 0, length);
                                 // 此处需要更新状态机
-                                RequestState requestState = new RequestState("FILE_MODIFY_REQUEST", pathName);
-                                stateMap.get(hostPort.toDoc().toJson()).add(requestState);
-                                existPathNameList.add(pathName);
+//                                RequestState requestState = new RequestState("FILE_MODIFY_REQUEST", pathName);
+//                                stateMap.get(hostPort.toDoc().toJson()).add(requestState);
+//                                existPathNameList.add(pathName);
 
                                 client.replyRequest(socketChannel, fileBytesRequest, false);
                             } else {
@@ -541,7 +548,7 @@ public class ServerMain implements FileSystemObserver {
 
                             }
                         } else if (position <= length - 1) {
-                            RequestState rs = new RequestState("FILE_BYTES_RESPONSE", pathName, position - 1, length);
+                            RequestState rs = new RequestState("FILE_BYTES_RESPONSE", pathName, position - Integer.parseInt(Configuration.getConfigurationValue("blockSize")), length);
                             List<RequestState> list = stateMap.get(hostPort.toDoc().toJson());
                             if (list.contains(rs)) {
                                 Document fileDescriptor = (Document) document.get("fileDescriptor");
@@ -597,11 +604,13 @@ public class ServerMain implements FileSystemObserver {
             case "FILE_BYTES_RESPONSE":{
                 HostPort hostPort = getHostPort(socketChannel);
                 Document fileDescriptor = (Document) document.get("fileDescriptor");
+                long fileSize = fileDescriptor.getLong("fileSize");
 
                 if (hostPort != null && peerSet.contains(hostPort.toDoc()))
                 {
                     long pos = document.getLong("position");
                     long len = document.getLong("length");
+                    long currentPos = pos + len;
                     String pathName = document.getString("pathName");
                     //if(pos == 0)
                     //{
@@ -618,13 +627,27 @@ public class ServerMain implements FileSystemObserver {
                                 try{
                                     if(fileSystemManager.writeFile(pathName,src, pos)){
                                         if(fileSystemManager.checkWriteComplete(pathName)){
-                                            String packet = ProtocolUtils.getFileBytesRequest(fileDescriptor,pathName,pos+1,len);
-                                            client.replyRequest(socketChannel, packet, false);
-                                            list.remove(rs);
-                                            if(pos <= len-1){
-                                                rs = new RequestState("FILE_BYTES_REQUEST", pathName,pos+1, len);
+                                            //long tmp = Integer.parseInt(Configuration.getConfigurationValue("blockSize"));
+                                            if(currentPos == fileSize-1)
+                                            {
+                                                list.remove(rs);
+                                            }
+                                            else if(currentPos + len > fileSize)
+                                            {
+                                                long newlen = fileSize - currentPos;
+                                                String packet = ProtocolUtils.getFileBytesRequest(fileDescriptor,pathName,currentPos,newlen);
+                                                client.replyRequest(socketChannel, packet, false);
+                                                list.remove(rs);
+                                                rs = new RequestState("FILE_BYTES_REQUEST", pathName,currentPos, newlen);
+                                            }
+                                            else if(currentPos + len <= fileSize){
+                                                String packet = ProtocolUtils.getFileBytesRequest(fileDescriptor,pathName,currentPos,len);
+                                                client.replyRequest(socketChannel, packet, false);
+                                                list.remove(rs);
+                                                rs = new RequestState("FILE_BYTES_REQUEST", pathName,currentPos, len);
                                                 list.add(rs);
                                             }
+
                                             respStateMap.put(hostPort.toDoc().toJson(),list);
 
                                         }
