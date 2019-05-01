@@ -59,6 +59,7 @@ public class EventHandler implements Runnable{
                 }
             } catch (IOException e) {
                 e.printStackTrace();
+                return;
             }
         }
         CommonOperation.registerWrite((SocketChannel) selectionKey.channel(), content, false, selector);
@@ -68,7 +69,7 @@ public class EventHandler implements Runnable{
         SocketChannel socketChannel = (SocketChannel) selectionKey.channel();
         Attachment attachment = (Attachment) selectionKey.attachment();
         String content = attachment.getContent();
-        ByteBuffer byteBuffer = ByteBuffer.allocate(content.length());
+        ByteBuffer byteBuffer = ByteBuffer.allocate(2*content.length());
         byteBuffer.clear();
         byteBuffer.put(content.getBytes());
         byteBuffer.flip();
@@ -107,6 +108,7 @@ public class EventHandler implements Runnable{
             StringBuffer hhd = new StringBuffer();
           //  while (socketChannel.read(byteBuffer) != -1) {
             int num = socketChannel.read(byteBuffer);
+            // socket has closed
             if (num == -1) {
                 socketChannel.close();
                 return;

@@ -23,7 +23,7 @@ public interface EventSelector {
     /**
      * Run the controller
      */
-    public void controllerRunning(int pp);
+    public void controllerRunning();
 
     /**
      * get the selector

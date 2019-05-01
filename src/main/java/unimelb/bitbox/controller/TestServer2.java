@@ -18,7 +18,7 @@ public class TestServer2 {
 
         EventSelector eventSelector = EventSelectorImpl.getInstance();
         ((EventSelectorImpl) eventSelector).setServerMain(serverMain);
-        eventSelector.controllerRunning(8112);
+        eventSelector.controllerRunning();
 //        try {
 //            ServerDemo serverDemo = new ServerDemo();
 //            serverDemo.startServer();

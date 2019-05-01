@@ -145,13 +145,13 @@ public class EventSelectorImpl implements EventSelector {
         return selectionKey;
     }
     @Override
-    public void controllerRunning(int pp) {
+    public void controllerRunning() {
         ServerSocketChannel serverSocketChannel = null;
         try {
             serverSocketChannel = ServerSocketChannel.open();
 
             ServerSocket ss = serverSocketChannel.socket();
-            ss.bind(new InetSocketAddress(pp));
+            ss.bind(new InetSocketAddress(port));
             serverSocketChannel.configureBlocking(false);
             serverSocketChannel.register(selector, SelectionKey.OP_ACCEPT);
         } catch (IOException e) {

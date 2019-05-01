@@ -15,7 +15,7 @@ public class TestServer {
         public void run() {
             EventSelector eventSelector = EventSelectorImpl.getInstance();
             System.out.println("starting");
-            eventSelector.controllerRunning(8111);
+            eventSelector.controllerRunning();
 
         }
     }
