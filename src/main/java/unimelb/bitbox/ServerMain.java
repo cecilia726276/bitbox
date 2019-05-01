@@ -1,7 +1,6 @@
 package unimelb.bitbox;
 
 import unimelb.bitbox.controller.ClientImpl;
-import unimelb.bitbox.message.Coder;
 import unimelb.bitbox.message.FileCoder;
 import unimelb.bitbox.message.ProtocolUtils;
 import unimelb.bitbox.util.*;
@@ -105,7 +104,7 @@ public class ServerMain implements FileSystemObserver {
          * send handshake request in initialization stage
          */
         for (HostPort hostPort: hostPorts){
-            String handshakeRequest = ProtocolUtils.getHandShakeRequest(hostPort.toDoc());
+            String handshakeRequest = ProtocolUtils.getHandShakeRequest(new HostPort(ip, port).toDoc());
             client.sendRequest(handshakeRequest,hostPort.host,hostPort.port);
             /**
              * The peer records the sending history to other peers.
@@ -896,6 +895,7 @@ public class ServerMain implements FileSystemObserver {
     private void sendRequest(String generatedRequest) {
         for (Object peer: peerSet){
             HostPort hp = new HostPort((Document) peer);
+            log.info("sending request to host: " + hp.host + " and ip: " + hp.port );
             client.sendRequest(generatedRequest,hp.host, hp.port);
         }
         return;

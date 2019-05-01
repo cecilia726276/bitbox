@@ -21,12 +21,13 @@ public class HostPort {
 	}
 	public HostPort(Document hostPort) {
 		this.host=hostPort.getString("host");
+		//this.port=hostPort.getInteger("port");
 		this.port=(int) hostPort.getLong("port");
 	}
 	public Document toDoc() {
 		Document hp = new Document();
 		hp.append("host", host);
-		hp.append("port", port);
+		hp.append("port", (long) port);
 		return hp;
 	}
 	@Override
