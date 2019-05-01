@@ -39,7 +39,7 @@ public class ServerMain implements FileSystemObserver {
      */
     private static ConcurrentHashMap<String, List<RequestState>> respStateMap = new ConcurrentHashMap<>();
 
-    private static List<String> existPathNameList = Collections.synchronizedList(new ArrayList());
+    //private static List<String> existPathNameList = Collections.synchronizedList(new ArrayList());
 
     /**
      * Record current connections
@@ -235,11 +235,12 @@ public class ServerMain implements FileSystemObserver {
                  */
                 log.info(command);
                 String pathName = document.getString("pathName");
-                RequestState requestState1 = new RequestState("FILE_CREATE_REQUEST",pathName);
-                RequestState requestState2 = new RequestState("FILE_CREATE_MODIFY",pathName);
+//                RequestState requestState1 = new RequestState("FILE_CREATE_REQUEST",pathName);
+//                RequestState requestState2 = new RequestState("FILE_CREATE_MODIFY",pathName);
                 HostPort hostPort = getHostPort(socketChannel);
                 boolean isPeerOnTheList = checkOntheList(socketChannel,peerSet);
-                if (isPeerOnTheList && !checkInReqStateMap(requestState1,hostPort) && !checkInReqStateMap(requestState2,hostPort) && !existPathNameList.contains(pathName)) {
+                if (isPeerOnTheList )//&& !checkInReqStateMap(requestState1,hostPort) && !checkInReqStateMap(requestState2,hostPort) && !existPathNameList.contains(pathName))
+                    {
                     Document fileDescriptor = (Document) document.get("fileDescriptor");
                     String md5 = fileDescriptor.getString("md5");
                     long fileSize = fileDescriptor.getLong("fileSize");
@@ -366,12 +367,13 @@ public class ServerMain implements FileSystemObserver {
             case "FILE_MODIFY_REQUEST": {
                 log.info(command);
                 String pathName = document.getString("pathName");
-                RequestState requestState1 = new RequestState("FILE_CREATE_REQUEST",pathName);
-                RequestState requestState2 = new RequestState("FILE_CREATE_MODIFY",pathName);
+//                RequestState requestState1 = new RequestState("FILE_CREATE_REQUEST",pathName);
+//                RequestState requestState2 = new RequestState("FILE_CREATE_MODIFY",pathName);
                 HostPort hostPort = getHostPort(socketChannel);
 
                 boolean isPeerOnTheList = checkOntheList(socketChannel,peerSet);
-                if (isPeerOnTheList && !checkInReqStateMap(requestState1,hostPort) && !checkInReqStateMap(requestState2,hostPort) && !existPathNameList.contains(pathName)) {
+                if (isPeerOnTheList )//&& !checkInReqStateMap(requestState1,hostPort) && !checkInReqStateMap(requestState2,hostPort) && !existPathNameList.contains(pathName))
+                {
                     Document fileDescriptor = (Document) document.get("fileDescriptor");
                     String md5 = fileDescriptor.getString("md5");
                     long fileSize = fileDescriptor.getLong("fileSize");
