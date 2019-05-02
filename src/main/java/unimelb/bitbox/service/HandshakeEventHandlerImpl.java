@@ -42,7 +42,6 @@ public class HandshakeEventHandlerImpl implements HandshakeEventHandler{
              * If the handshake has already been completed
              */
             if (socketChannelSet.contains(socketChannel)) {
-                //if (peerSet.contains(hostPort.toDoc())) {
                 String content = ProtocolUtils.getInvalidProtocol("handshaking has already been completed");
                 SocketProcessUtil.sendRejectResponse(socketChannel, content, socketChannelSet, peerSet);
                 /**
@@ -53,7 +52,6 @@ public class HandshakeEventHandlerImpl implements HandshakeEventHandler{
              * If the maximum incomming connections have been reached:
              */
             else if (socketChannelSet.size() + 1 > ConstUtil.MAXIMUM_INCOMMING_CONNECTIONS) {
-                //else if (peerSet.size() + 1 > MAXIMUM_INCOMMING_CONNECTIONS) {
                 List list = new ArrayList(peerSet);
                 String content = ProtocolUtils.getConnectionRefusedRequest(list);
                 client.replyRequest(socketChannel, content, true);
@@ -76,7 +74,7 @@ public class HandshakeEventHandlerImpl implements HandshakeEventHandler{
     }
 
     @Override
-    public void processResponse(SocketChannel socketChannel, Document document) {
+    public void processSuccessResponse(SocketChannel socketChannel, Document document) {
         HostPort hostPort = new HostPort((Document) document.get("hostPort"));
         log.info("hostport from handshake response: ip: " + hostPort.host + " port: " + hostPort.port);
         HostPort hostPort1 = SocketProcessUtil.getHostPort(socketChannel);
@@ -101,4 +99,34 @@ public class HandshakeEventHandlerImpl implements HandshakeEventHandler{
             SocketProcessUtil.sendRejectResponse(socketChannel, content, socketChannelSet, peerSet);
         }
     }
+
+    @Override
+    public void processRejectResponse(SocketChannel socketChannel, Document document) {
+        log.info("Peers in connection: " + document.getString("message"));
+
+        /**
+         * Check if it has sent a handshake request before.
+         * yes - attempt to establish connection with its neighbour
+         * no - send invalid_protocol
+         */
+
+        HostPort hostPort = SocketProcessUtil.getHostPort(socketChannel);
+        boolean handshakeBefore = handshakeReqHistory.contains(hostPort.toDoc());
+        if (handshakeBefore) {
+            List<Document> existingPeers = (List<Document>) document.get("message");
+            HostPort firstPeers = new HostPort(existingPeers.get(0));
+            String handshakeRequest = ProtocolUtils.getHandShakeRequest(firstPeers.toDoc());
+            client.sendRequest(handshakeRequest, firstPeers.host, firstPeers.port);
+            /**
+             * The peer that tried to connect should do a breadth first search of peers in the peers list, attempt to make a connection to one of them.
+             */
+            handshakeReqHistory.add(new HostPort(firstPeers.host, firstPeers.port));
+
+        } else {
+            String invalidResponse = ProtocolUtils.getInvalidProtocol("Not waiting for a handshake response from this peer");
+            SocketProcessUtil.sendRejectResponse(socketChannel,invalidResponse, socketChannelSet, peerSet);
+        }
+    }
+
+
 }
