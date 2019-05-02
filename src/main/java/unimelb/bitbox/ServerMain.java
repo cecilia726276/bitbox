@@ -415,7 +415,7 @@ public class ServerMain implements FileSystemObserver {
                     long fileSize = fileDescriptor.getLong("fileSize");
                     long lastModified = fileDescriptor.getLong("lastModified");
 
-                    if (fileSystemManager.fileNameExists(pathName, fileDescriptor.getString("md5"))) {
+                    if (fileSystemManager.fileNameExists(pathName)) {
                         try {
                             boolean status = fileSystemManager.modifyFileLoader(pathName, md5, lastModified);
                             if (status) {
