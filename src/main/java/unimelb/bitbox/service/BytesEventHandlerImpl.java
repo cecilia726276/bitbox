@@ -1,17 +1,15 @@
 package unimelb.bitbox.service;
 
-import unimelb.bitbox.ContextManager;
-import unimelb.bitbox.EventDetail;
 import unimelb.bitbox.controller.Client;
 import unimelb.bitbox.controller.ClientImpl;
 import unimelb.bitbox.message.FileCoder;
 import unimelb.bitbox.message.ProtocolUtils;
-import unimelb.bitbox.util.*;
+import unimelb.bitbox.util.ConstUtil;
+import unimelb.bitbox.util.Document;
+import unimelb.bitbox.util.FileSystemManager;
 
 import java.nio.ByteBuffer;
 import java.nio.channels.SocketChannel;
-import java.util.List;
-import java.util.Map;
 
 public class BytesEventHandlerImpl implements BytesEventHandler {
     private FileSystemManager fileSystemManager;
@@ -44,9 +42,14 @@ public class BytesEventHandlerImpl implements BytesEventHandler {
                 long lastModified = fileDescriptor.getLong("lastModified");
                 //     if (fileSystemManager.fileNameExists(pathName, md5)) {
                 try {
-                    String content = FileCoder.INSTANCE.getEncoder().encode(fileSystemManager.readFile(md5, position, length)).toString();
+                    ByteBuffer byteBuffer = fileSystemManager.readFile(md5, position,length);
+                    System.out.println("b1:"+ byteBuffer);
+                    ByteBuffer byteBuffer1 = FileCoder.INSTANCE.getEncoder().encode(byteBuffer);
+                    System.out.println("b2:"+ byteBuffer1);
+                    String ccc = byteBuffer1.toString();
+                    //String content = FileCoder.INSTANCE.getEncoder().encode(fileSystemManager.readFile(md5, position, length)).toString();
                     String message = "successful read";
-                    String packet = ProtocolUtils.getFileBytesResponse(fileDescriptor, pathName, position, length, content, message, false);
+                    String packet = ProtocolUtils.getFileBytesResponse(fileDescriptor, pathName, position, length, ccc, message, false);
                     client.replyRequest(socketChannel, packet, false);
 //                    if (list.contains(rs1)) {
 //                        list.remove(rs1);
@@ -110,7 +113,7 @@ public class BytesEventHandlerImpl implements BytesEventHandler {
     }
 
     @Override
-    public void processResponse(SocketChannel socketChannel, Document document, HostPort hostPort) {
+    public void processResponse(SocketChannel socketChannel, Document document) {
         Document fileDescriptor = (Document) document.get("fileDescriptor");
         long fileSize = fileDescriptor.getLong("fileSize");
             //if (hostPort != null && peerSet.contains(hostPort.toDoc())) {

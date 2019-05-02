@@ -22,7 +22,7 @@ import java.util.logging.Logger;
 public class ServerMain implements FileSystemObserver {
     private static Logger log = Logger.getLogger(ServerMain.class.getName());
     protected FileSystemManager fileSystemManager;
-    BytesEventHandler bytesEventHandler = new BytesEventHandlerImpl(fileSystemManager);
+    BytesEventHandler bytesEventHandler;
 
 //    /**
 //     * Record the corresponding HostPort according to SocketChannel.
@@ -100,6 +100,7 @@ public class ServerMain implements FileSystemObserver {
     public ServerMain() throws NumberFormatException, IOException, NoSuchAlgorithmException {
         fileSystemManager=new FileSystemManager(Configuration.getConfigurationValue("path"),this);
         String[] peers = Configuration.getConfigurationValue("peers").split(",");
+        bytesEventHandler = new BytesEventHandlerImpl(fileSystemManager);
 
         for (String peer:peers){
             HostPort hostPost = new HostPort(peer);
@@ -814,6 +815,17 @@ public class ServerMain implements FileSystemObserver {
             case FILE_CREATE: {
                 String createRequest = ProtocolUtils.getFileRequest("FILE_CREATE_REQUEST", fileSystemEvent.fileDescriptor.toDoc(),fileSystemEvent.pathName);
                 sendRequest(createRequest);
+//                ByteBuffer byteBuffer = null;
+//                try {
+//                    byteBuffer = fileSystemManager.readFile(fileSystemEvent.fileDescriptor.md5, 0,fileSystemEvent.fileDescriptor.fileSize);
+//                } catch (IOException e) {
+//                    e.printStackTrace();
+//                } catch (NoSuchAlgorithmException e) {
+//                    e.printStackTrace();
+//                }
+//                log.info("????"+ byteBuffer);
+//                ByteBuffer byteBuffer1 = FileCoder.INSTANCE.getEncoder().encode(byteBuffer);
+//                log.info("!!!!" + byteBuffer1);
 //                log.info("path: "+ fileSystemEvent.path);
 //                log.info("name: " + fileSystemEvent.name);
 //                log.info("pathName: "+ fileSystemEvent.pathName);
