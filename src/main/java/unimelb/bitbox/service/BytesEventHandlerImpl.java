@@ -1,14 +1,17 @@
 package unimelb.bitbox.service;
 
+import unimelb.bitbox.ContextManager;
+import unimelb.bitbox.EventDetail;
 import unimelb.bitbox.controller.Client;
 import unimelb.bitbox.controller.ClientImpl;
 import unimelb.bitbox.message.FileCoder;
 import unimelb.bitbox.message.ProtocolUtils;
-import unimelb.bitbox.util.ConstUtil;
-import unimelb.bitbox.util.Document;
-import unimelb.bitbox.util.FileSystemManager;
+import unimelb.bitbox.util.*;
 
+import java.nio.ByteBuffer;
 import java.nio.channels.SocketChannel;
+import java.util.List;
+import java.util.Map;
 
 public class BytesEventHandlerImpl implements BytesEventHandler {
     private FileSystemManager fileSystemManager;
@@ -27,7 +30,7 @@ public class BytesEventHandlerImpl implements BytesEventHandler {
         String pathName = document.getString("pathName");
         long position = document.getLong("position");
         long length = document.getLong("length");
-//        Map<String, EventDetail> eventDetails =  ContextManager.eventContext.get(pathName);
+//        Map<String, EventDetail> eventDetails =  ContextManager.eventContext.get(socketChannel);
 //        EventDetail eventDetail = eventDetails.get(pathName);
 //        if (eventDetail == null) {
 //            return ;
@@ -59,9 +62,7 @@ public class BytesEventHandlerImpl implements BytesEventHandler {
                     sendRejectResponse(socketChannel, content);
                     ioe.printStackTrace();
                 }
-
                 // }
-
             } else {
                 String content = ProtocolUtils.getInvalidProtocol("invalid message 2");
                 sendRejectResponse(socketChannel, content);
@@ -108,6 +109,82 @@ public class BytesEventHandlerImpl implements BytesEventHandler {
 
     }
 
+    @Override
+    public void processResponse(SocketChannel socketChannel, Document document, HostPort hostPort) {
+        Document fileDescriptor = (Document) document.get("fileDescriptor");
+        long fileSize = fileDescriptor.getLong("fileSize");
+            //if (hostPort != null && peerSet.contains(hostPort.toDoc())) {
+            long pos = document.getLong("position");
+            long len = document.getLong("length");
+            long currentPos = pos + len;
+            String pathName = document.getString("pathName");
+
+//            Map<String, EventDetail> eventDetails =  ContextManager.eventContext.get(socketChannel);
+//            if (eventDetails == null) {
+//                return ;
+//            }
+//            EventDetail eventDetail = eventDetails.get(pathName);
+//            if (eventDetail == null) {
+//                return ;
+//            }
+            //if(pos == 0)
+            //{
+//            RequestState rs = new RequestState("FILE_BYTES_REQUEST", pathName, pos, len);
+//            List<RequestState> list = respStateMap.get(hostPort.toDoc().toJson());
+        String recordCommand = null;//eventDetail.getCommand();
+
+        if (true || recordCommand.equals(ConstUtil.FILE_BYTES_REQUEST)) {
+                boolean status = document.getBoolean("status");
+                if (status) {
+                    String content = document.getString("content");
+                    byte[] buf = FileCoder.INSTANCE.getDecoder().decode(content);
+                    ByteBuffer src = ByteBuffer.wrap(buf);
+                    try {
+                        if (fileSystemManager.writeFile(pathName, src, pos)) {
+                            if (fileSystemManager.checkWriteComplete(pathName)) {
+                                //long tmp = Integer.parseInt(Configuration.getConfigurationValue("blockSize"));
+                                if (currentPos == fileSize - 1) // TODO： 需要改 by SYZ
+                                {
+//                                    list.remove(rs);
+                                } else if (currentPos + len > fileSize) {
+                                    long newlen = fileSize - currentPos;
+                                    String packet = ProtocolUtils.getFileBytesRequest(fileDescriptor, pathName, currentPos, newlen);
+                                    client.replyRequest(socketChannel, packet, false);
+//                                    list.remove(rs);
+                                    // TODO: 需要更改状态
+//                                    rs = new RequestState("FILE_BYTES_REQUEST", pathName, currentPos, newlen);
+                                } else if (currentPos + len <= fileSize) {
+                                    String packet = ProtocolUtils.getFileBytesRequest(fileDescriptor, pathName, currentPos, len);
+                                    client.replyRequest(socketChannel, packet, false);
+//                                   //TODO: 需要更改状态
+//                                    list.remove(rs);
+//                                    rs = new RequestState("FILE_BYTES_REQUEST", pathName, currentPos, len);
+//                                    list.add(rs);
+                                }
+//                                respStateMap.put(hostPort.toDoc().toJson(), list);
+
+                            } else {//如果文件没写完，重新request一下，状态机就不用更新了 TODO: 需要更新状态
+                                String packet = ProtocolUtils.getFileBytesRequest(fileDescriptor, pathName, pos, len);
+                                client.replyRequest(socketChannel, packet, false);
+                            }
+                        }
+                    } catch (Exception e) {
+                        String str = ProtocolUtils.getInvalidProtocol("invalid message 1");
+                        sendRejectResponse(socketChannel, str);
+                        e.printStackTrace();
+                    }
+
+
+                } else {
+                    String str = ProtocolUtils.getInvalidProtocol("status is false");
+                    sendRejectResponse(socketChannel, str);
+                }
+            } else {
+                String str = ProtocolUtils.getInvalidProtocol("I havent send a file_bytes_req for this file, why send me response?");
+                sendRejectResponse(socketChannel, str);
+            }
+        //processCDResponse(document, command, socketChannel);
+    }
 
 
 }
