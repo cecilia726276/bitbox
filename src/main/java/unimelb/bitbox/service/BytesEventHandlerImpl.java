@@ -43,13 +43,9 @@ public class BytesEventHandlerImpl implements BytesEventHandler {
                 //     if (fileSystemManager.fileNameExists(pathName, md5)) {
                 try {
                     ByteBuffer byteBuffer = fileSystemManager.readFile(md5, position,length);
-                    System.out.println("b1:"+ byteBuffer);
-                    ByteBuffer byteBuffer1 = FileCoder.INSTANCE.getEncoder().encode(byteBuffer);
-                    System.out.println("b2:"+ byteBuffer1);
-                    String ccc = byteBuffer1.toString();
-                    //String content = FileCoder.INSTANCE.getEncoder().encode(fileSystemManager.readFile(md5, position, length)).toString();
+                    String content = FileCoder.INSTANCE.getEncoder().encodeToString(byteBuffer.array());
                     String message = "successful read";
-                    String packet = ProtocolUtils.getFileBytesResponse(fileDescriptor, pathName, position, length, ccc, message, false);
+                    String packet = ProtocolUtils.getFileBytesResponse(fileDescriptor, pathName, position, length, content, message, false);
                     client.replyRequest(socketChannel, packet, false);
 //                    if (list.contains(rs1)) {
 //                        list.remove(rs1);
@@ -71,7 +67,7 @@ public class BytesEventHandlerImpl implements BytesEventHandler {
                 sendRejectResponse(socketChannel, content);
 
             }
-        } else if (position <= length - 1) { // TODO： position <= length - 1 ?? commented out by SYZ
+        } else if (position <= length - 1) {
 //            RequestState rs = new RequestState("FILE_BYTES_RESPONSE", pathName, position - Integer.parseInt(Configuration.getConfigurationValue("blockSize")), length);
 //            List<RequestState> list = stateMap.get(hostPort.toDoc().toJson());
 
@@ -146,7 +142,7 @@ public class BytesEventHandlerImpl implements BytesEventHandler {
                         if (fileSystemManager.writeFile(pathName, src, pos)) {
                             if (fileSystemManager.checkWriteComplete(pathName)) {
                                 //long tmp = Integer.parseInt(Configuration.getConfigurationValue("blockSize"));
-                                if (currentPos == fileSize - 1) // TODO： 需要改 by SYZ
+                                if (currentPos == fileSize - 1)
                                 {
 //                                    list.remove(rs);
                                 } else if (currentPos + len > fileSize) {
