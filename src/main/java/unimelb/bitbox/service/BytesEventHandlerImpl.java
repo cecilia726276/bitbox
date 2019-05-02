@@ -1,16 +1,14 @@
 package unimelb.bitbox.service;
 
-import unimelb.bitbox.ContextManager;
-import unimelb.bitbox.EventDetail;
 import unimelb.bitbox.controller.Client;
 import unimelb.bitbox.controller.ClientImpl;
 import unimelb.bitbox.message.FileCoder;
 import unimelb.bitbox.message.ProtocolUtils;
-import unimelb.bitbox.util.*;
+import unimelb.bitbox.util.ConstUtil;
+import unimelb.bitbox.util.Document;
+import unimelb.bitbox.util.FileSystemManager;
 
 import java.nio.channels.SocketChannel;
-import java.util.List;
-import java.util.Map;
 
 public class BytesEventHandlerImpl implements BytesEventHandler {
     private FileSystemManager fileSystemManager;
@@ -22,17 +20,18 @@ public class BytesEventHandlerImpl implements BytesEventHandler {
     private void sendRejectResponse(SocketChannel socketChannel, String content) {
 //        client.replyRequest(socketChannel,content,true);
 //        deletePeer(socketChannel);
-        System.out.println("test send Reject Response, but actually didn't send");
+        System.out.println("test send Reject Response, but actually didn't send: content :"+ content);
     }
+    @Override
     public void processRequest(SocketChannel socketChannel, Document document) {
         String pathName = document.getString("pathName");
         long position = document.getLong("position");
         long length = document.getLong("length");
-        Map<String, EventDetail> eventDetails =  ContextManager.eventContext.get(pathName);
-        EventDetail eventDetail = eventDetails.get(pathName);
-        if (eventDetail == null) {
-          //  return ;
-        }
+//        Map<String, EventDetail> eventDetails =  ContextManager.eventContext.get(pathName);
+//        EventDetail eventDetail = eventDetails.get(pathName);
+//        if (eventDetail == null) {
+//            return ;
+//        }
         String recordCommand = null;//eventDetail.getCommand();
         if (position == 0) {
             if (true||recordCommand.equals(ConstUtil.FILE_CREATE_RESPONSE) || recordCommand.equals(ConstUtil.FILE_MODIFY_RESPONSE)) {
@@ -56,14 +55,15 @@ public class BytesEventHandlerImpl implements BytesEventHandler {
 //                    stateMap.put(hostPort.toDoc().toJson(), list);
 
                 } catch (Exception ioe) {
-                    String content = ProtocolUtils.getInvalidProtocol("invalid message");
+                    String content = ProtocolUtils.getInvalidProtocol("invalid message 1");
                     sendRejectResponse(socketChannel, content);
+                    ioe.printStackTrace();
                 }
 
                 // }
 
             } else {
-                String content = ProtocolUtils.getInvalidProtocol("invalid message");
+                String content = ProtocolUtils.getInvalidProtocol("invalid message 2");
                 sendRejectResponse(socketChannel, content);
 
             }
@@ -86,7 +86,9 @@ public class BytesEventHandlerImpl implements BytesEventHandler {
 
 
                 } catch (Exception ioe) {
-                    String content = ProtocolUtils.getInvalidProtocol("invalid message");
+
+                    String content = ProtocolUtils.getInvalidProtocol("invalid message 3");
+                    ioe.printStackTrace();
                     sendRejectResponse(socketChannel, content);
                 }
 

@@ -1,14 +1,14 @@
 package unimelb.bitbox;
 
 import unimelb.bitbox.controller.ClientImpl;
-import unimelb.bitbox.message.FileCoder;
 import unimelb.bitbox.message.ProtocolUtils;
+import unimelb.bitbox.service.BytesEventHandler;
+import unimelb.bitbox.service.BytesEventHandlerImpl;
 import unimelb.bitbox.util.*;
 import unimelb.bitbox.util.FileSystemManager.FileSystemEvent;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
-import java.nio.ByteBuffer;
 import java.nio.channels.SocketChannel;
 import java.security.NoSuchAlgorithmException;
 import java.util.*;
@@ -22,6 +22,7 @@ import java.util.logging.Logger;
 public class ServerMain implements FileSystemObserver {
     private static Logger log = Logger.getLogger(ServerMain.class.getName());
     protected FileSystemManager fileSystemManager;
+    BytesEventHandler bytesEventHandler = new BytesEventHandlerImpl(fileSystemManager);
 
 //    /**
 //     * Record the corresponding HostPort according to SocketChannel.
@@ -89,7 +90,7 @@ public class ServerMain implements FileSystemObserver {
     /**
      * client - implement ClientImpl to send/receive request
      */
-    ClientImpl client = new ClientImpl();
+    ClientImpl client = ClientImpl.getInstance();
 
     /**
      * hostPorts - store the hosts and ports of a list of peers
@@ -128,6 +129,23 @@ public class ServerMain implements FileSystemObserver {
      * @param socketChannel
      */
     public void processRequest(SocketChannel socketChannel, String string) {
+        String split = "}\\{";
+        String[] processList = string.split(split);
+        for (String s : processList){
+            if (s.charAt(s.length()-1) != '}'){
+                s = s + '}';
+            }
+            if (s.charAt(0) != '{'){
+                s = '{' + s;
+            }
+            processEachMessage(socketChannel,s);
+        }
+
+
+    }
+
+    private void processEachMessage(SocketChannel socketChannel, String string){
+
         Document document = Document.parse(string);
         log.info("input String: " + string);
         String command = document.getString("command");
@@ -156,7 +174,7 @@ public class ServerMain implements FileSystemObserver {
                     /**
                      * The peer that tried to connect should do a breadth first search of peers in the peers list, attempt to make a connection to one of them.
                      */
-                    handshakeReqHistory.add(new HostPort(firstPeers.host,firstPeers.port));
+                    handshakeReqHistory.add(new HostPort(firstPeers.host, firstPeers.port));
 
                 } else {
                     String invalidResponse = ProtocolUtils.getInvalidProtocol("Not waiting for a handshake response from this peer");
@@ -167,9 +185,9 @@ public class ServerMain implements FileSystemObserver {
             case "HANDSHAKE_REQUEST": {
                 log.info(command);
                 HostPort hostPort = new HostPort((Document) document.get("hostPort"));
-                log.info("hostport from handshake request: ip: "+ hostPort.host + " port: " + hostPort.port);
+                log.info("hostport from handshake request: ip: " + hostPort.host + " port: " + hostPort.port);
                 HostPort hostPort1 = getHostPort(socketChannel);
-                log.info("hostport from sss handshake request: ip: "+ hostPort1.host + " port: " + hostPort1.port);
+                log.info("hostport from sss handshake request: ip: " + hostPort1.host + " port: " + hostPort1.port);
                 /**
                  * If the hostPort is valid
                  */
@@ -177,8 +195,8 @@ public class ServerMain implements FileSystemObserver {
                     /**
                      * If the handshake has already been completed
                      */
-                    if (socketChannelSet.contains(socketChannel)){
-                    //if (peerSet.contains(hostPort.toDoc())) {
+                    if (socketChannelSet.contains(socketChannel)) {
+                        //if (peerSet.contains(hostPort.toDoc())) {
                         String content = ProtocolUtils.getInvalidProtocol("handshaking has already been completed");
                         sendRejectResponse(socketChannel, content);
                         /**
@@ -188,8 +206,8 @@ public class ServerMain implements FileSystemObserver {
                     /**
                      * If the maximum incomming connections have been reached:
                      */
-                    else if (socketChannelSet.size() + 1 > MAXIMUM_INCOMMING_CONNECTIONS){
-                    //else if (peerSet.size() + 1 > MAXIMUM_INCOMMING_CONNECTIONS) {
+                    else if (socketChannelSet.size() + 1 > MAXIMUM_INCOMMING_CONNECTIONS) {
+                        //else if (peerSet.size() + 1 > MAXIMUM_INCOMMING_CONNECTIONS) {
                         List list = new ArrayList(peerSet);
                         String content = ProtocolUtils.getConnectionRefusedRequest(list);
                         client.replyRequest(socketChannel, content, true);
@@ -214,9 +232,9 @@ public class ServerMain implements FileSystemObserver {
             case "HANDSHAKE_RESPONSE": {
                 log.info(command);
                 HostPort hostPort = new HostPort((Document) document.get("hostPort"));
-                log.info("hostport from handshake response: ip: "+ hostPort.host + " port: " + hostPort.port);
+                log.info("hostport from handshake response: ip: " + hostPort.host + " port: " + hostPort.port);
                 HostPort hostPort1 = getHostPort(socketChannel);
-                log.info("hostport from sss handshake response: ip: "+ hostPort1.host + " port: " + hostPort1.port);
+                log.info("hostport from sss handshake response: ip: " + hostPort1.host + " port: " + hostPort1.port);
 
                 if (hostPort != null) {
                     /**
@@ -248,11 +266,11 @@ public class ServerMain implements FileSystemObserver {
 //                RequestState requestState1 = new RequestState("FILE_CREATE_REQUEST",pathName);
 //                RequestState requestState2 = new RequestState("FILE_CREATE_MODIFY",pathName);
                 HostPort hostPort = getHostPort(socketChannel);
-                log.info("hostport from sss file create request: ip: "+ hostPort.host + " port: " + hostPort.port);
+                log.info("hostport from sss file create request: ip: " + hostPort.host + " port: " + hostPort.port);
                 boolean isPeerOnTheList = socketChannelSet.contains(socketChannel);
                 //boolean isPeerOnTheList = checkOntheList(socketChannel,peerSet);
-                if (isPeerOnTheList )//&& !checkInReqStateMap(requestState1,hostPort) && !checkInReqStateMap(requestState2,hostPort) && !existPathNameList.contains(pathName))
-                    {
+                if (isPeerOnTheList)//&& !checkInReqStateMap(requestState1,hostPort) && !checkInReqStateMap(requestState2,hostPort) && !existPathNameList.contains(pathName))
+                {
                     Document fileDescriptor = (Document) document.get("fileDescriptor");
                     String md5 = fileDescriptor.getString("md5");
                     long fileSize = fileDescriptor.getLong("fileSize");
@@ -280,7 +298,7 @@ public class ServerMain implements FileSystemObserver {
                                          * Else start requesting bytes
                                          */
                                         long length = fileSize;
-                                        if(fileSize / blockSize > 1){
+                                        if (fileSize / blockSize > 1) {
                                             length = blockSize;
                                         }
                                         // fileTransferTable.put(fileDescriptor.toJson(), length);
@@ -293,7 +311,7 @@ public class ServerMain implements FileSystemObserver {
 //                                        stateMap.get(hostPort.toDoc().toJson()).add(requestState);
 //                                        existPathNameList.add(pathName);
                                         //初始化file_bytes_response 的状态机（记录下自己已经发送了file_bytes_request）
-                                        if(client.replyRequest(socketChannel, fileBytesRequest, false)){
+                                        if (client.replyRequest(socketChannel, fileBytesRequest, false)) {
                                             List<RequestState> list = new ArrayList<>();
 
                                             RequestState requestState = new RequestState("FILE_CREATE_REQUEST", pathName, 0, length);
@@ -314,11 +332,11 @@ public class ServerMain implements FileSystemObserver {
                             }
                         } else {
                             String content = ProtocolUtils.getFileResponse("FILE_CREATE_RESPONSE", fileDescriptor, pathName, false, "pathname already exists");
-                            sendRejectResponse(socketChannel, content);
+                            client.replyRequest(socketChannel, content, false);
                         }
                     } else {
                         String content = ProtocolUtils.getFileResponse("FILE_CREATE_RESPONSE", fileDescriptor, pathName, false, "unsafe pathname given");
-                        sendRejectResponse(socketChannel, content);
+                        client.replyRequest(socketChannel, content, false);
                     }
                 } else {
                     String content = ProtocolUtils.getInvalidProtocol("This peer has not been handshaked before.");
@@ -330,15 +348,14 @@ public class ServerMain implements FileSystemObserver {
                 boolean status = document.getBoolean("status");
                 HostPort hostPort = getHostPort(socketChannel);
                 String pathName = document.getString("pathName");
-                if(status){
+                if (status) {
                     List<RequestState> list;
                     if (!stateMap.containsKey(hostPort.toDoc().toJson())) {
                         list = Collections.synchronizedList(new ArrayList());
-                    }
-                    else{
+                    } else {
                         list = stateMap.get(hostPort.toDoc().toJson());
                     }
-                    RequestState rs = new RequestState("FILE_CREATE_RESPONSE",pathName);
+                    RequestState rs = new RequestState("FILE_CREATE_RESPONSE", pathName);
                     list.add(rs);
                     stateMap.put(hostPort.toDoc().toJson(), list);
                 }
@@ -385,7 +402,7 @@ public class ServerMain implements FileSystemObserver {
                 HostPort hostPort = getHostPort(socketChannel);
                 boolean isPeerOnTheList = socketChannelSet.contains(socketChannel);
                 //boolean isPeerOnTheList = checkOntheList(socketChannel,peerSet);
-                if (isPeerOnTheList )//&& !checkInReqStateMap(requestState1,hostPort) && !checkInReqStateMap(requestState2,hostPort) && !existPathNameList.contains(pathName))
+                if (isPeerOnTheList)//&& !checkInReqStateMap(requestState1,hostPort) && !checkInReqStateMap(requestState2,hostPort) && !existPathNameList.contains(pathName))
                 {
                     Document fileDescriptor = (Document) document.get("fileDescriptor");
                     String md5 = fileDescriptor.getString("md5");
@@ -399,7 +416,7 @@ public class ServerMain implements FileSystemObserver {
                                 String content = ProtocolUtils.getFileResponse("FILE_MODIFY_RESPONSE", fileDescriptor, pathName, status, "Modify File Loader");
                                 client.replyRequest(socketChannel, content, false);
                                 long length = fileSize;
-                                if(fileSize / blockSize > 1){
+                                if (fileSize / blockSize > 1) {
                                     length = blockSize;
                                 }
                                 //fileTransferTable.put(fileDescriptor.toJson(), length);
@@ -433,15 +450,14 @@ public class ServerMain implements FileSystemObserver {
                 boolean status = document.getBoolean("status");
                 HostPort hostPort = getHostPort(socketChannel);
                 String pathName = document.getString("pathName");
-                if(status){
+                if (status) {
                     List<RequestState> list;
                     if (!stateMap.containsKey(hostPort.toDoc().toJson())) {
                         list = Collections.synchronizedList(new ArrayList());
-                    }
-                    else{
+                    } else {
                         list = stateMap.get(hostPort.toDoc().toJson());
                     }
-                    RequestState rs = new RequestState("FILE_MODIFY_RESPONSE",pathName);
+                    RequestState rs = new RequestState("FILE_MODIFY_RESPONSE", pathName);
                     list.add(rs);
                     stateMap.put(hostPort.toDoc().toJson(), list);
                 }
@@ -507,6 +523,15 @@ public class ServerMain implements FileSystemObserver {
                 break;
             }
             case "FILE_BYTES_REQUEST": {
+                if (socketChannelSet.contains(socketChannel)){
+                    bytesEventHandler.processRequest(socketChannel, document);
+                }else{
+                    String content = ProtocolUtils.getInvalidProtocol("peer not found");
+                    sendRejectResponse(socketChannel, content);
+                }
+                break;
+
+
 //                log.info(command);
 //                boolean isPeerOnTheList = checkOntheList(socketChannel);
 //                if (isPeerOnTheList){
@@ -526,197 +551,191 @@ public class ServerMain implements FileSystemObserver {
 //                        } catch (Exception e) {
 //                            e.printStackTrace();
 //                        }
-                    HostPort hostPort = getHostPort(socketChannel);
-                    if (hostPort != null && socketChannelSet.contains(socketChannel)){
-                    //if (hostPort != null && peerSet.contains(hostPort.toDoc())) {
-                        String pathName = document.getString("pathName");
-                        long position = document.getLong("position");
-                        long length = document.getLong("length");
-                        if (position == 0) {
-                            RequestState rs1 = new RequestState("FILE_CREATE_RESPONSE", pathName);
-                            RequestState rs2 = new RequestState("FILE_MODIFY_RESPONSE", pathName);
-                            List<RequestState> list = stateMap.get(hostPort.toDoc().toJson());
-                            if (list.contains(rs1) || list.contains(rs2)) {
-                                Document fileDescriptor = (Document) document.get("fileDescriptor");
-                                String md5 = fileDescriptor.getString("md5");
-                                long fileSize = fileDescriptor.getLong("fileSize");
-                                long lastModified = fileDescriptor.getLong("lastModified");
-                           //     if (fileSystemManager.fileNameExists(pathName, md5)) {
-                                    try {
-                                        String content = FileCoder.INSTANCE.getEncoder().encode(fileSystemManager.readFile(md5, position, length)).toString();
-                                        String message = "successful read";
-                                        String packet = ProtocolUtils.getFileBytesResponse(fileDescriptor, pathName, position, length, content, message, false);
-                                        client.replyRequest(socketChannel, packet, false);
-                                        if (list.contains(rs1)) {
-                                            list.remove(rs1);
-                                        } else {
-                                            list.remove(rs2);
-                                        }
-                                        rs1 = new RequestState("FILE_BYTES_RESPONSE", pathName, position, length);
-                                        list.add(rs1);
-                                        stateMap.put(hostPort.toDoc().toJson(), list);
-
-                                    } catch (Exception ioe) {
-                                        String content = ProtocolUtils.getInvalidProtocol("invalid message");
-                                        sendRejectResponse(socketChannel, content);
-                                    }
-
-                               // }
-
-                            } else {
-                                String content = ProtocolUtils.getInvalidProtocol("invalid message");
-                                sendRejectResponse(socketChannel, content);
-
-                            }
-                        } else if (position <= length - 1) { // TODO： position <= length - 1 ?? commented out by SYZ
-                            RequestState rs = new RequestState("FILE_BYTES_RESPONSE", pathName, position - Integer.parseInt(Configuration.getConfigurationValue("blockSize")), length);
-                            List<RequestState> list = stateMap.get(hostPort.toDoc().toJson());
-                            if (list.contains(rs)) {
-                                Document fileDescriptor = (Document) document.get("fileDescriptor");
-                                String md5 = fileDescriptor.getString("md5");
-                                long fileSize = fileDescriptor.getLong("fileSize");
-                                long lastModified = fileDescriptor.getLong("lastModified");
-                           //     if (fileSystemManager.fileNameExists(pathName, md5)) {
-                                    try {
-                                        String content = FileCoder.INSTANCE.getEncoder().encode(fileSystemManager.readFile(md5, position, length)).toString();
-                                        String message = "successful read";
-                                        String packet = ProtocolUtils.getFileBytesResponse(fileDescriptor, pathName, position, length, content, message, true);
-                                        client.replyRequest(socketChannel,packet,false);
-                                        list.remove(rs);
-                                        rs = new RequestState("FILE_BYTES_RESPONSE", pathName, position, length);
-                                        list.add(rs);
-                                        stateMap.put(hostPort.toDoc().toJson(), list);
-
-                                    } catch (Exception ioe) {
-                                        String content = ProtocolUtils.getInvalidProtocol("invalid message");
-                                        sendRejectResponse(socketChannel, content);
-                                    }
-
-                             //   }
-                            } else {
-                                String content = ProtocolUtils.getInvalidProtocol("position out of length!");
-                                sendRejectResponse(socketChannel, content);
-
-                            }
-                        } else {
-                            String content = ProtocolUtils.getInvalidProtocol("peer not found");
-                            sendRejectResponse(socketChannel, content);
-
-                        }
-
-
-                    }
-                /**
-                 * "command": "FILE_BYTES_RESPONSE",
-                 * "fileDescriptor" : {
-                 * "md5" : "b1946ac92492d2347c6235b4d2611184",
-                 * "lastModified" : 1553417607000,
-                 * "fileSize" : 6
-                 * },
-                 * "pathName" : "hello.txt",
-                 * "position" : 0,
-                 * "length" : 6,
-                 * "content" : "aGVsbG8K"
-                 * "message" : "successful read",
-                 * "status" : true
-                 */
-                break;
+//                HostPort hostPort = getHostPort(socketChannel);
+//                if (hostPort != null && socketChannelSet.contains(socketChannel)) {
+//                    //if (hostPort != null && peerSet.contains(hostPort.toDoc())) {
+//                    String pathName = document.getString("pathName");
+//                    long position = document.getLong("position");
+//                    long length = document.getLong("length");
+//                    if (position == 0) {
+//                        RequestState rs1 = new RequestState("FILE_CREATE_RESPONSE", pathName);
+//                        RequestState rs2 = new RequestState("FILE_MODIFY_RESPONSE", pathName);
+//                        List<RequestState> list = stateMap.get(hostPort.toDoc().toJson());
+//                        if (list.contains(rs1) || list.contains(rs2)) {
+//                            Document fileDescriptor = (Document) document.get("fileDescriptor");
+//                            String md5 = fileDescriptor.getString("md5");
+//                            long fileSize = fileDescriptor.getLong("fileSize");
+//                            long lastModified = fileDescriptor.getLong("lastModified");
+//                            //     if (fileSystemManager.fileNameExists(pathName, md5)) {
+//                            try {
+//                                String content = FileCoder.INSTANCE.getEncoder().encode(fileSystemManager.readFile(md5, position, length)).toString();
+//                                String message = "successful read";
+//                                String packet = ProtocolUtils.getFileBytesResponse(fileDescriptor, pathName, position, length, content, message, false);
+//                                client.replyRequest(socketChannel, packet, false);
+//                                if (list.contains(rs1)) {
+//                                    list.remove(rs1);
+//                                } else {
+//                                    list.remove(rs2);
+//                                }
+//                                rs1 = new RequestState("FILE_BYTES_RESPONSE", pathName, position, length);
+//                                list.add(rs1);
+//                                stateMap.put(hostPort.toDoc().toJson(), list);
+//
+//                            } catch (Exception ioe) {
+//                                String content = ProtocolUtils.getInvalidProtocol("invalid message");
+//                                sendRejectResponse(socketChannel, content);
+//                            }
+//
+//                            // }
+//
+//                        } else {
+//                            String content = ProtocolUtils.getInvalidProtocol("invalid message");
+//                            sendRejectResponse(socketChannel, content);
+//
+//                        }
+//                    } else if (position <= length - 1) { // TODO： position <= length - 1 ?? commented out by SYZ
+//                        RequestState rs = new RequestState("FILE_BYTES_RESPONSE", pathName, position - Integer.parseInt(Configuration.getConfigurationValue("blockSize")), length);
+//                        List<RequestState> list = stateMap.get(hostPort.toDoc().toJson());
+//                        if (list.contains(rs)) {
+//                            Document fileDescriptor = (Document) document.get("fileDescriptor");
+//                            String md5 = fileDescriptor.getString("md5");
+//                            long fileSize = fileDescriptor.getLong("fileSize");
+//                            long lastModified = fileDescriptor.getLong("lastModified");
+//                            //     if (fileSystemManager.fileNameExists(pathName, md5)) {
+//                            try {
+//                                String content = FileCoder.INSTANCE.getEncoder().encode(fileSystemManager.readFile(md5, position, length)).toString();
+//                                String message = "successful read";
+//                                String packet = ProtocolUtils.getFileBytesResponse(fileDescriptor, pathName, position, length, content, message, true);
+//                                client.replyRequest(socketChannel, packet, false);
+//                                list.remove(rs);
+//                                rs = new RequestState("FILE_BYTES_RESPONSE", pathName, position, length);
+//                                list.add(rs);
+//                                stateMap.put(hostPort.toDoc().toJson(), list);
+//
+//                            } catch (Exception ioe) {
+//                                String content = ProtocolUtils.getInvalidProtocol("invalid message");
+//                                sendRejectResponse(socketChannel, content);
+//                            }
+//
+//                            //   }
+//                        } else {
+//                            String content = ProtocolUtils.getInvalidProtocol("position out of length!");
+//                            sendRejectResponse(socketChannel, content);
+//
+//                        }
+//                    } else {
+//                        String content = ProtocolUtils.getInvalidProtocol("peer not found");
+//                        sendRejectResponse(socketChannel, content);
+//
+//                    }
+//
+//
+//                }
+//                /**
+//                 * "command": "FILE_BYTES_RESPONSE",
+//                 * "fileDescriptor" : {
+//                 * "md5" : "b1946ac92492d2347c6235b4d2611184",
+//                 * "lastModified" : 1553417607000,
+//                 * "fileSize" : 6
+//                 * },
+//                 * "pathName" : "hello.txt",
+//                 * "position" : 0,
+//                 * "length" : 6,
+//                 * "content" : "aGVsbG8K"
+//                 * "message" : "successful read",
+//                 * "status" : true
+//                 */
+//                break;
+//            }
             }
-            case "FILE_BYTES_RESPONSE":{
-                HostPort hostPort = getHostPort(socketChannel);
-                Document fileDescriptor = (Document) document.get("fileDescriptor");
-                long fileSize = fileDescriptor.getLong("fileSize");
-
-                if (hostPort != null && socketChannelSet.contains(socketChannel)){
-                //if (hostPort != null && peerSet.contains(hostPort.toDoc())) {
-                    long pos = document.getLong("position");
-                    long len = document.getLong("length");
-                    long currentPos = pos + len;
-                    String pathName = document.getString("pathName");
-                    //if(pos == 0)
-                    //{
-                        RequestState rs = new RequestState("FILE_BYTES_REQUEST", pathName,pos, len);
-                        List<RequestState> list = respStateMap.get(hostPort.toDoc().toJson());
-                        if(list.contains(rs))
-                        {
-                            boolean status = document.getBoolean("status");
-                            if(status)
-                            {
-                                String content = document.getString("content");
-                                byte[] buf = FileCoder.INSTANCE.getDecoder().decode(content);
-                                ByteBuffer src = ByteBuffer.wrap(buf);
-                                try{
-                                    if(fileSystemManager.writeFile(pathName,src, pos)){
-                                        if(fileSystemManager.checkWriteComplete(pathName)){
-                                            //long tmp = Integer.parseInt(Configuration.getConfigurationValue("blockSize"));
-                                            if(currentPos == fileSize-1) // TODO： 需要改 by SYZ
-                                            {
-                                                list.remove(rs);
-                                            }
-                                            else if(currentPos + len > fileSize)
-                                            {
-                                                long newlen = fileSize - currentPos;
-                                                String packet = ProtocolUtils.getFileBytesRequest(fileDescriptor,pathName,currentPos,newlen);
-                                                client.replyRequest(socketChannel, packet, false);
-                                                list.remove(rs);
-                                                rs = new RequestState("FILE_BYTES_REQUEST", pathName,currentPos, newlen);
-                                            }
-                                            else if(currentPos + len <= fileSize){
-                                                String packet = ProtocolUtils.getFileBytesRequest(fileDescriptor,pathName,currentPos,len);
-                                                client.replyRequest(socketChannel, packet, false);
-                                                list.remove(rs);
-                                                rs = new RequestState("FILE_BYTES_REQUEST", pathName,currentPos, len);
-                                                list.add(rs);
-                                            }
-
-                                            respStateMap.put(hostPort.toDoc().toJson(),list);
-
-                                        }
-                                        else{//如果文件没写完，重新request一下，状态机就不用更新了
-                                            String packet = ProtocolUtils.getFileBytesRequest(fileDescriptor,pathName,pos,len);
-                                            client.replyRequest(socketChannel, packet, false);
-                                        }
-                                    }
-                                }catch(Exception e){
-                                    String str = ProtocolUtils.getInvalidProtocol("invalid message");
-                                    sendRejectResponse(socketChannel, str);
-
-                                }
-
-
-                            }
-                            else{
-                                String str = ProtocolUtils.getInvalidProtocol("status is false");
-                                sendRejectResponse(socketChannel, str);
-                            }
-                        }
-                        else{
-                            String str = ProtocolUtils.getInvalidProtocol("I havent send a file_bytes_req for this file, why send me response?");
-                            sendRejectResponse(socketChannel, str);
-                        }
-                    //}
+            case "FILE_BYTES_RESPONSE": {
+                if (socketChannelSet.contains(socketChannel)){
+                  log.info("received response !!");
+                  log.info("Response:" + document.toString());
                 }
-                else{
-                    String content = ProtocolUtils.getInvalidProtocol("peer not found");
-                    sendRejectResponse(socketChannel, content);
-                }
-                //processCDResponse(document, command, socketChannel);
                 break;
+//                HostPort hostPort = getHostPort(socketChannel);
+//                Document fileDescriptor = (Document) document.get("fileDescriptor");
+//                long fileSize = fileDescriptor.getLong("fileSize");
+//
+//                if (hostPort != null && socketChannelSet.contains(socketChannel)) {
+//                    //if (hostPort != null && peerSet.contains(hostPort.toDoc())) {
+//                    long pos = document.getLong("position");
+//                    long len = document.getLong("length");
+//                    long currentPos = pos + len;
+//                    String pathName = document.getString("pathName");
+//                    //if(pos == 0)
+//                    //{
+//                    RequestState rs = new RequestState("FILE_BYTES_REQUEST", pathName, pos, len);
+//                    List<RequestState> list = respStateMap.get(hostPort.toDoc().toJson());
+//                    if (list.contains(rs)) {
+//                        boolean status = document.getBoolean("status");
+//                        if (status) {
+//                            String content = document.getString("content");
+//                            byte[] buf = FileCoder.INSTANCE.getDecoder().decode(content);
+//                            ByteBuffer src = ByteBuffer.wrap(buf);
+//                            try {
+//                                if (fileSystemManager.writeFile(pathName, src, pos)) {
+//                                    if (fileSystemManager.checkWriteComplete(pathName)) {
+//                                        //long tmp = Integer.parseInt(Configuration.getConfigurationValue("blockSize"));
+//                                        if (currentPos == fileSize - 1) // TODO： 需要改 by SYZ
+//                                        {
+//                                            list.remove(rs);
+//                                        } else if (currentPos + len > fileSize) {
+//                                            long newlen = fileSize - currentPos;
+//                                            String packet = ProtocolUtils.getFileBytesRequest(fileDescriptor, pathName, currentPos, newlen);
+//                                            client.replyRequest(socketChannel, packet, false);
+//                                            list.remove(rs);
+//                                            rs = new RequestState("FILE_BYTES_REQUEST", pathName, currentPos, newlen);
+//                                        } else if (currentPos + len <= fileSize) {
+//                                            String packet = ProtocolUtils.getFileBytesRequest(fileDescriptor, pathName, currentPos, len);
+//                                            client.replyRequest(socketChannel, packet, false);
+//                                            list.remove(rs);
+//                                            rs = new RequestState("FILE_BYTES_REQUEST", pathName, currentPos, len);
+//                                            list.add(rs);
+//                                        }
+//
+//                                        respStateMap.put(hostPort.toDoc().toJson(), list);
+//
+//                                    } else {//如果文件没写完，重新request一下，状态机就不用更新了
+//                                        String packet = ProtocolUtils.getFileBytesRequest(fileDescriptor, pathName, pos, len);
+//                                        client.replyRequest(socketChannel, packet, false);
+//                                    }
+//                                }
+//                            } catch (Exception e) {
+//                                String str = ProtocolUtils.getInvalidProtocol("invalid message");
+//                                sendRejectResponse(socketChannel, str);
+//
+//                            }
+//
+//
+//                        } else {
+//                            String str = ProtocolUtils.getInvalidProtocol("status is false");
+//                            sendRejectResponse(socketChannel, str);
+//                        }
+//                    } else {
+//                        String str = ProtocolUtils.getInvalidProtocol("I havent send a file_bytes_req for this file, why send me response?");
+//                        sendRejectResponse(socketChannel, str);
+//                    }
+//                    //}
+//                } else {
+//                    String content = ProtocolUtils.getInvalidProtocol("peer not found");
+//                    sendRejectResponse(socketChannel, content);
+//                }
+//                //processCDResponse(document, command, socketChannel);
+//                break;
             }
-            default:{
+            default: {
                 String content = ProtocolUtils.getInvalidProtocol("message must contain a command field as string");
-                sendRejectResponse(socketChannel,content);
+                sendRejectResponse(socketChannel, content);
                 log.info("send INVALID_PROTOCOL");
             }
         }
-        log.info(document.getString("command"));
-
-
     }
 
     private void processCDResponse(Document document, String command, SocketChannel socketChannel) {
         log.info(command);
-        log.info("status: " + document.getString("status") + ", message: " + document.getString("message"));
+        log.info("status: " + document.getBoolean("status") + ", message: " + document.getString("message"));
         // 此处需要判断状态机 - host有没有给这个peer发送过FILE_CREATE_REQUEST/DELETE请求
         boolean sendCreateRequest = true;
         if (sendCreateRequest) {
@@ -793,16 +812,19 @@ public class ServerMain implements FileSystemObserver {
         log.info(event.toString());
         switch (event){
             case FILE_CREATE: {
-                String createRequest = ProtocolUtils.getFileRequest("FILE_CREATE_REQUEST", fileSystemEvent.fileDescriptor.toDoc(),fileSystemEvent.name);
+                String createRequest = ProtocolUtils.getFileRequest("FILE_CREATE_REQUEST", fileSystemEvent.fileDescriptor.toDoc(),fileSystemEvent.pathName);
                 sendRequest(createRequest);
+//                log.info("path: "+ fileSystemEvent.path);
+//                log.info("name: " + fileSystemEvent.name);
+//                log.info("pathName: "+ fileSystemEvent.pathName);
                 String pathName = fileSystemEvent.pathName;
                 RequestState state = new RequestState("FILE_CREATE_REQUEST", pathName);
                 //initialRespState(state);
-
+                break;
 
             }
             case FILE_MODIFY: {
-                String modifyRequest = ProtocolUtils.getFileRequest("FILE_MODIFY_REQUEST", fileSystemEvent.fileDescriptor.toDoc(),fileSystemEvent.name);
+                String modifyRequest = ProtocolUtils.getFileRequest("FILE_MODIFY_REQUEST", fileSystemEvent.fileDescriptor.toDoc(),fileSystemEvent.pathName);
                 sendRequest(modifyRequest);
                 String pathName = fileSystemEvent.pathName;
                 RequestState state = new RequestState("FILE_MODIFY_REQUEST", pathName);
@@ -810,17 +832,17 @@ public class ServerMain implements FileSystemObserver {
                 break;
             }
             case FILE_DELETE:{
-                String deleteRequest = ProtocolUtils.getFileRequest("FILE_DELETE_REQUEST", fileSystemEvent.fileDescriptor.toDoc(),fileSystemEvent.name);
+                String deleteRequest = ProtocolUtils.getFileRequest("FILE_DELETE_REQUEST", fileSystemEvent.fileDescriptor.toDoc(),fileSystemEvent.pathName);
                 sendRequest(deleteRequest);
                 break;
             }
             case DIRECTORY_CREATE:{
-                String createDirRequest = ProtocolUtils.getDirRequest("DIRECTORY_CREATE_REQUEST", fileSystemEvent.name);
+                String createDirRequest = ProtocolUtils.getDirRequest("DIRECTORY_CREATE_REQUEST", fileSystemEvent.pathName);
                 sendRequest(createDirRequest);
                 break;
             }
             case DIRECTORY_DELETE:{
-                String deleteDirRequest = ProtocolUtils.getDirRequest("DIRECTORY_DELETE_REQUEST",fileSystemEvent.name);
+                String deleteDirRequest = ProtocolUtils.getDirRequest("DIRECTORY_DELETE_REQUEST",fileSystemEvent.pathName);
                 sendRequest(deleteDirRequest);
                 break;
             }
@@ -830,7 +852,7 @@ public class ServerMain implements FileSystemObserver {
 
     private void sendRequest(String generatedRequest) {
         for (Object socketChannel: socketChannelSet){
-            client.replyRequest((SocketChannel) socketChannel,generatedRequest,false);
+            client.replyRequest((SocketChannel) socketChannel, generatedRequest,false);
             log.info("send to socketchannel: "+ socketChannel.toString());
         }
 //        for (Object peer: peerSet){
