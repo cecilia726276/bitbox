@@ -12,6 +12,10 @@ public class ConstUtil {
     public static final String FILE_BYTES_RESPONSE = "FILE_BYTES_RESPONSE";
     public static final String FILE_DELETE_REQUEST = "FILE_DELETE_REQUEST";
     public static final String FILE_DELETE_RESPONSE = "FILE_DELETE_RESPONSE";
+    public static final String DIRECTORY_CREATE_REQUEST = "DIRECTORY_CREATE_REQUEST";
+    public static final String DIRECTORY_CREATE_RESPONSE = "DIRECTORY_CREATE_RESPONSE";
+    public static final String DIRECTORY_DELETE_REQUEST = "DIRECTORY_DELETE_REQUEST";
+    public static final String DIRECTORY_DELETE_RESPONSE = "DIRECTORY_DELETE_RESPONSE";
     public static final int MAXIMUM_INCOMMING_CONNECTIONS = Integer.parseInt(Configuration.getConfigurationValue("maximumIncommingConnections"));
     public static final String IP = Configuration.getConfigurationValue("advertisedName");
     public static final int PORT = Integer.parseInt(Configuration.getConfigurationValue("port"));

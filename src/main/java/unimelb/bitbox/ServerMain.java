@@ -4,6 +4,8 @@ import unimelb.bitbox.controller.ClientImpl;
 import unimelb.bitbox.message.ProtocolUtils;
 import unimelb.bitbox.service.BytesEventHandler;
 import unimelb.bitbox.service.BytesEventHandlerImpl;
+import unimelb.bitbox.service.DirectoryEventHandler;
+import unimelb.bitbox.service.DirectoryEventHandlerImpl;
 import unimelb.bitbox.util.*;
 import unimelb.bitbox.util.FileSystemManager.FileSystemEvent;
 
@@ -21,9 +23,10 @@ import java.util.logging.Logger;
  * It provides an interface processRequest(SocketChannel socketChannel) to the EventHandler.
  */
 public class ServerMain implements FileSystemObserver {
-    private static Logger log = Logger.getLogger(ServerMain.class.getName());
+    public static Logger log = Logger.getLogger(ServerMain.class.getName());
     protected FileSystemManager fileSystemManager;
     BytesEventHandler bytesEventHandler;
+    DirectoryEventHandler directoryEventHandler;
 
 //    /**
 //     * Record the corresponding HostPort according to SocketChannel.
@@ -102,6 +105,7 @@ public class ServerMain implements FileSystemObserver {
         fileSystemManager=new FileSystemManager(Configuration.getConfigurationValue("path"),this);
         String[] peers = Configuration.getConfigurationValue("peers").split(",");
         bytesEventHandler = new BytesEventHandlerImpl(fileSystemManager);
+        directoryEventHandler = new DirectoryEventHandlerImpl(fileSystemManager,log,socketChannelSet,peerSet);
 
         for (String peer:peers){
             HostPort hostPost = new HostPort(peer);
@@ -468,27 +472,28 @@ public class ServerMain implements FileSystemObserver {
             }
             case "DIRECTORY_CREATE_REQUEST": {
                 log.info(command);
-                boolean isPeerOnTheList = socketChannelSet.contains(socketChannel);
-                //boolean isPeerOnTheList = checkOntheList(socketChannel,peerSet);
-                if (isPeerOnTheList) {
-                    String pathName = document.getString("pathName");
-                    if (!fileSystemManager.dirNameExists(pathName)) {
-                        boolean status = fileSystemManager.makeDirectory(pathName);
-                        if (status) {
-                            String content = ProtocolUtils.getDirResponse("DIRECTORY_CREATE_RESPONSE", pathName, "Create a directory successfully", status);
-                            client.replyRequest(socketChannel, content, false);
-                        } else {
-                            String content = ProtocolUtils.getDirResponse("DIRECTORY_CREATE_RESPONSE", pathName, "Failed to create a directory", status);
-                            client.replyRequest(socketChannel, content, false);
-                        }
-                    } else {
-                        String content = ProtocolUtils.getDirResponse("DIRECTORY_CREATE_RESPONSE", pathName, "Directory already exists", false);
-                        client.replyRequest(socketChannel, content, false);
-                    }
-                } else {
-                    String content = ProtocolUtils.getInvalidProtocol("Peer is not connected");
-                    sendRejectResponse(socketChannel, content);
-                }
+                directoryEventHandler.processDirCreateRequest(socketChannel,document);
+//                boolean isPeerOnTheList = socketChannelSet.contains(socketChannel);
+//                //boolean isPeerOnTheList = checkOntheList(socketChannel,peerSet);
+//                if (isPeerOnTheList) {
+//                    String pathName = document.getString("pathName");
+//                    if (!fileSystemManager.dirNameExists(pathName)) {
+//                        boolean status = fileSystemManager.makeDirectory(pathName);
+//                        if (status) {
+//                            String content = ProtocolUtils.getDirResponse("DIRECTORY_CREATE_RESPONSE", pathName, "Create a directory successfully", status);
+//                            client.replyRequest(socketChannel, content, false);
+//                        } else {
+//                            String content = ProtocolUtils.getDirResponse("DIRECTORY_CREATE_RESPONSE", pathName, "Failed to create a directory", status);
+//                            client.replyRequest(socketChannel, content, false);
+//                        }
+//                    } else {
+//                        String content = ProtocolUtils.getDirResponse("DIRECTORY_CREATE_RESPONSE", pathName, "Directory already exists", false);
+//                        client.replyRequest(socketChannel, content, false);
+//                    }
+//                } else {
+//                    String content = ProtocolUtils.getInvalidProtocol("Peer is not connected");
+//                    sendRejectResponse(socketChannel, content);
+//                }
                 break;
             }
             case "DIRECTORY_CREATE_RESPONSE": {
@@ -497,31 +502,33 @@ public class ServerMain implements FileSystemObserver {
             }
             case "DIRECTORY_DELETE_REQUEST": {
                 log.info(command);
-                boolean isPeerOnTheList = socketChannelSet.contains(socketChannel);
-                //boolean isPeerOnTheList = checkOntheList(socketChannel,peerSet);
-                if (isPeerOnTheList) {
-                    String pathName = document.getString("pathName");
-                    if (fileSystemManager.dirNameExists(pathName)) {
-                        boolean status = fileSystemManager.deleteDirectory(pathName);
-                        if (status) {
-                            String content = ProtocolUtils.getDirResponse("DIRECTORY_DELETE_RESPONSE", pathName, "Delete a directory successfully", status);
-                            client.replyRequest(socketChannel, content, false);
-                        } else {
-                            String content = ProtocolUtils.getDirResponse("DIRECTORY_DELETE_RESPONSE", pathName, "Failed to delete a directory", status);
-                            client.replyRequest(socketChannel, content, false);
-                        }
-                    } else {
-                        String content = ProtocolUtils.getDirResponse("DIRECTORY_CREATE_RESPONSE", pathName, "Directory doesn't exists", false);
-                        client.replyRequest(socketChannel, content, false);
-                    }
-                } else {
-                    String content = ProtocolUtils.getInvalidProtocol("Peer is not connected");
-                    sendRejectResponse(socketChannel, content);
-                }
+                directoryEventHandler.processDirDeleteRequest(socketChannel,document);
+//                boolean isPeerOnTheList = socketChannelSet.contains(socketChannel);
+//                //boolean isPeerOnTheList = checkOntheList(socketChannel,peerSet);
+//                if (isPeerOnTheList) {
+//                    String pathName = document.getString("pathName");
+//                    if (fileSystemManager.dirNameExists(pathName)) {
+//                        boolean status = fileSystemManager.deleteDirectory(pathName);
+//                        if (status) {
+//                            String content = ProtocolUtils.getDirResponse("DIRECTORY_DELETE_RESPONSE", pathName, "Delete a directory successfully", status);
+//                            client.replyRequest(socketChannel, content, false);
+//                        } else {
+//                            String content = ProtocolUtils.getDirResponse("DIRECTORY_DELETE_RESPONSE", pathName, "Failed to delete a directory", status);
+//                            client.replyRequest(socketChannel, content, false);
+//                        }
+//                    } else {
+//                        String content = ProtocolUtils.getDirResponse("DIRECTORY_CREATE_RESPONSE", pathName, "Directory doesn't exists", false);
+//                        client.replyRequest(socketChannel, content, false);
+//                    }
+//                } else {
+//                    String content = ProtocolUtils.getInvalidProtocol("Peer is not connected");
+//                    sendRejectResponse(socketChannel, content);
+//                }
                 break;
             }
             case "DIRECTORY_DELETE_RESPONSE": {
-                processCDResponse(document, command, socketChannel);
+                log.info(command);
+//                processCDResponse(document, command, socketChannel);
                 break;
             }
             case "FILE_BYTES_REQUEST": {
