@@ -1,5 +1,6 @@
 package unimelb.bitbox.util;
 
+import unimelb.bitbox.ServerMain;
 import unimelb.bitbox.controller.Client;
 import unimelb.bitbox.controller.ClientImpl;
 import unimelb.bitbox.message.ProtocolUtils;
@@ -41,5 +42,17 @@ public class SocketProcessUtil {
         }
 
         client.closeSocket(socketChannel);
+    }
+    public static void processCDResponse(Document document, String command, SocketChannel socketChannel,  Set socketChannelSet, Set peerSet) {
+        ServerMain.log.info(command);
+        ServerMain.log.info("status: " + document.getBoolean("status") + ", message: " + document.getString("message"));
+        // 此处需要判断状态机 - host有没有给这个peer发送过FILE_CREATE_REQUEST/DELETE请求
+        boolean sendCreateRequest = true;
+        if (sendCreateRequest) {
+            // 此处需要更新状态机 - host已经准备好收到bytes了
+        } else {
+            String content = ProtocolUtils.getInvalidProtocol("Invalid Response.");
+            sendRejectResponse(socketChannel, content, socketChannelSet, peerSet);
+        }
     }
 }
