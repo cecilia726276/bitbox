@@ -4,6 +4,7 @@ public class ConstUtil {
     public static final String INVALID_PROTOCOL = "INVALID_PROTOCOL";
     public static final String CONNECTION_REFUSED = "CONNECTION_REFUSED";
     public static final String HANDSHAKE_REQUEST = "HANDSHAKE_REQUEST";
+    public static final String HANDSHAKE_RESPONSE = "HANDSHAKE_RESPONSE";
     public static final String FILE_CREATE_REQUEST = "FILE_CREATE_REQUEST";
     public static final String FILE_CREATE_RESPONSE = "FILE_CREATE_RESPONSE";
     public static final String FILE_MODIFY_REQUEST = "FILE_MODIFY_REQUEST";
