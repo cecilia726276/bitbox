@@ -12,9 +12,14 @@ import java.util.Map;
 
 public class ClientImpl implements Client {
     private EventSelector eventSelector;
-    public ClientImpl() {
+    private static ClientImpl client =  new ClientImpl();
+    public static ClientImpl getInstance() {
+        return client;
+    }
+    private ClientImpl() {
         eventSelector = EventSelectorImpl.getInstance();
     }
+
     @Override
     public boolean sendRequest(String content, String ip, int port) {
         try {

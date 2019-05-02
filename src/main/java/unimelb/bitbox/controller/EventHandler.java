@@ -58,6 +58,8 @@ public class EventHandler implements Runnable{
                     System.out.println("client connect server succ");
                 }
             } catch (IOException e) {
+                // 连接不上需要调用一个函数
+
                 e.printStackTrace();
                 return;
             }
