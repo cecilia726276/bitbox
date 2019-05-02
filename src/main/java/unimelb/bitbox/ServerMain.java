@@ -9,6 +9,7 @@ import unimelb.bitbox.util.FileSystemManager.FileSystemEvent;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
+import java.nio.ByteBuffer;
 import java.nio.channels.SocketChannel;
 import java.security.NoSuchAlgorithmException;
 import java.util.*;
@@ -651,8 +652,9 @@ public class ServerMain implements FileSystemObserver {
             }
             case "FILE_BYTES_RESPONSE": {
                 if (socketChannelSet.contains(socketChannel)){
-                  log.info("received response !!");
-                  log.info("Response:" + document.toString());
+                    log.info("received response !!");
+                    log.info("Response:" + document.toString());
+                    bytesEventHandler.processResponse(socketChannel, document);
                 }
                 break;
 //                HostPort hostPort = getHostPort(socketChannel);
@@ -815,17 +817,24 @@ public class ServerMain implements FileSystemObserver {
             case FILE_CREATE: {
                 String createRequest = ProtocolUtils.getFileRequest("FILE_CREATE_REQUEST", fileSystemEvent.fileDescriptor.toDoc(),fileSystemEvent.pathName);
                 sendRequest(createRequest);
-//                ByteBuffer byteBuffer = null;
-//                try {
-//                    byteBuffer = fileSystemManager.readFile(fileSystemEvent.fileDescriptor.md5, 0,fileSystemEvent.fileDescriptor.fileSize);
-//                } catch (IOException e) {
-//                    e.printStackTrace();
-//                } catch (NoSuchAlgorithmException e) {
-//                    e.printStackTrace();
-//                }
-//                log.info("????"+ byteBuffer);
-//                ByteBuffer byteBuffer1 = FileCoder.INSTANCE.getEncoder().encode(byteBuffer);
-//                log.info("!!!!" + byteBuffer1);
+                ByteBuffer byteBuffer = null;
+                try {
+                    byteBuffer = fileSystemManager.readFile(fileSystemEvent.fileDescriptor.md5, 0,fileSystemEvent.fileDescriptor.fileSize);
+                } catch (IOException e) {
+                    e.printStackTrace();
+                } catch (NoSuchAlgorithmException e) {
+                    e.printStackTrace();
+                }
+
+//                log.info("????1111"+ byteBuffer);
+//                //ByteBuffer byteBuffer1 = FileCoder.INSTANCE.getEncoder().encode(byteBuffer);
+//                log.info("brr: "+ FileCoder.INSTANCE.getEncoder().encodeToString(byteBuffer.array()));
+//                String content = FileCoder.INSTANCE.getEncoder().encodeToString(byteBuffer.array());
+//                byte[] buf = FileCoder.INSTANCE.getDecoder().decode(content);
+//                ByteBuffer src = ByteBuffer.wrap(buf);
+//                log.info("????2222"+ src);
+//                System.out.println("!!!!!!: " + (byteBuffer == src) );
+
 //                log.info("path: "+ fileSystemEvent.path);
 //                log.info("name: " + fileSystemEvent.name);
 //                log.info("pathName: "+ fileSystemEvent.pathName);

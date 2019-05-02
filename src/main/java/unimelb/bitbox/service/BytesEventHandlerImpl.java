@@ -45,7 +45,7 @@ public class BytesEventHandlerImpl implements BytesEventHandler {
                     ByteBuffer byteBuffer = fileSystemManager.readFile(md5, position,length);
                     String content = FileCoder.INSTANCE.getEncoder().encodeToString(byteBuffer.array());
                     String message = "successful read";
-                    String packet = ProtocolUtils.getFileBytesResponse(fileDescriptor, pathName, position, length, content, message, false);
+                    String packet = ProtocolUtils.getFileBytesResponse(fileDescriptor, pathName, position, length, content, message, true);
                     client.replyRequest(socketChannel, packet, false);
 //                    if (list.contains(rs1)) {
 //                        list.remove(rs1);
