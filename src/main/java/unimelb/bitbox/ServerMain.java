@@ -147,7 +147,17 @@ public class ServerMain implements FileSystemObserver {
             processEachMessage(socketChannel,s);
         }
 
+    }
 
+    /**
+     * It is called when the peer has reached its maximum connections.
+     * @param socketChannel
+     */
+    public void replyConnectionError(SocketChannel socketChannel){
+        List list = new ArrayList(peerSet);
+        String content = ProtocolUtils.getConnectionRefusedRequest(list);
+        client.replyRequest(socketChannel, content, true);
+        log.info("send CONNECTION_REFUSED");
     }
 
     private void processEachMessage(SocketChannel socketChannel, String string){
