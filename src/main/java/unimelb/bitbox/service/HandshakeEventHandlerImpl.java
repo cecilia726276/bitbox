@@ -120,9 +120,14 @@ public class HandshakeEventHandlerImpl implements HandshakeEventHandler{
         HostPort hostPort = SocketProcessUtil.getHostPort(socketChannel);
         boolean handshakeBefore = handshakeReqHistory.contains(socketChannel);
         if (handshakeBefore) {
-            List<Document> existingPeers = (List<Document>) document.get("message");
+            List<Document> existingPeers = (List<Document>) document.get("peers");
+            if (existingPeers.size() == 0) {
+                log.info("No existing peers.");
+                return;
+            }
             HostPort firstPeers = new HostPort(existingPeers.get(0));
             String handshakeRequest = ProtocolUtils.getHandShakeRequest(firstPeers.toDoc());
+            log.info("send new request: "+ firstPeers.host + firstPeers.port);
             client.sendRequest(handshakeRequest, firstPeers.host, firstPeers.port);
             /**
              * The peer that tried to connect should do a breadth first search of peers in the peers list, attempt to make a connection to one of them.

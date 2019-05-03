@@ -1,6 +1,7 @@
 package unimelb.bitbox;
 
 import unimelb.bitbox.controller.ClientImpl;
+import unimelb.bitbox.controller.EventSelectorImpl;
 import unimelb.bitbox.message.ProtocolUtils;
 import unimelb.bitbox.service.*;
 import unimelb.bitbox.util.*;
@@ -101,6 +102,9 @@ public class ServerMain implements FileSystemObserver {
     private ArrayList<HostPort> hostPorts = new ArrayList<>();
 
     public ServerMain() throws NumberFormatException, IOException, NoSuchAlgorithmException {
+        EventSelectorImpl eventSelector = EventSelectorImpl.getInstance();
+        ((EventSelectorImpl) eventSelector).setServerMain(this);
+
         fileSystemManager=new FileSystemManager(Configuration.getConfigurationValue("path"),this);
         String[] peers = Configuration.getConfigurationValue("peers").split(",");
         handshakeEventHandler = new HandshakeEventHandlerImpl(fileSystemManager,log,socketChannelSet,peerSet,handshakeReqHistory);

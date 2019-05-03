@@ -4,10 +4,7 @@ import java.io.IOException;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.nio.channels.SocketChannel;
-import java.util.ArrayList;
-import java.util.Collections;
 import java.util.Map;
-import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
 public class CommonOperation {
@@ -25,6 +22,7 @@ public class CommonOperation {
             }
             System.out.println("attachment size:"+ attachment.getContent().size());
             attachment.getContent().add(content);
+            attachment.setFinished(isFinal);
             Selector s =  selector.getSelector();
             s.wakeup();
         } catch (IOException e) {

@@ -19,11 +19,20 @@ public class Peer
         log.info("BitBox Peer starting...");
         Configuration.getConfiguration();
 
-       EventSelector eventSelector = EventSelectorImpl.getInstance();
-//        eventSelector.controllerRunning();
+        ServerMain serverMain = null;
+        try {
+            serverMain = new ServerMain();
+        } catch (IOException e) {
+            e.printStackTrace();
+        } catch (NoSuchAlgorithmException e) {
+            e.printStackTrace();
+        }
 
-        ServerMain serverMain = new ServerMain();
-        SyncRunner syncRunner = new SyncRunner(serverMain);
-        eventSelector.getFixedThreadPool().execute(syncRunner);
+        EventSelector eventSelector = EventSelectorImpl.getInstance();
+        eventSelector.getFixedThreadPool().execute(new SyncRunner(serverMain));
+
+        System.out.println("start3");
+
+        eventSelector.controllerRunning();
     }
 }

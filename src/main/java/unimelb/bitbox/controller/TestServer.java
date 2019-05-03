@@ -1,7 +1,6 @@
 package unimelb.bitbox.controller;
 
 import unimelb.bitbox.ServerMain;
-import unimelb.bitbox.draft.Server;
 import unimelb.bitbox.util.SyncRunner;
 
 import java.io.IOException;
@@ -30,20 +29,15 @@ public class TestServer {
         } catch (NoSuchAlgorithmException e) {
             e.printStackTrace();
         }
-        ((EventSelectorImpl) eventSelector).setServerMain(serverMain);
         Thread thread = new Thread(new ServerRun());
         thread.start();
         System.out.println("start1");
-/*
-        try {
-            Thread.sleep(1000);
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
-        Thread thread1 = new Thread(new SyncRunner(null));
+
+
+        Thread thread1 = new Thread(new SyncRunner(serverMain));
         thread1.start();
         System.out.println("start2");
-        */
+
 //        EventSelector eventSelector = EventSelectorImpl.getInstance();
     //    Client client = new ClientImpl();
       //  client.sendRequest("hahahahah", "localhost", 8112);

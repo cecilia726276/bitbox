@@ -3,12 +3,8 @@ package unimelb.bitbox.util;
 import unimelb.bitbox.ServerMain;
 import unimelb.bitbox.controller.EventSelector;
 import unimelb.bitbox.controller.EventSelectorImpl;
-import unimelb.bitbox.draft.Server;
 
-import java.nio.channels.SocketChannel;
 import java.util.Date;
-import java.util.List;
-import java.util.Map;
 
 public class SyncRunner implements Runnable {
     private ServerMain serverMain;
@@ -22,7 +18,7 @@ public class SyncRunner implements Runnable {
     public void run() {
         while (true) {
             try {
-                Thread.sleep(10000);
+                Thread.sleep(1000000000);
             } catch (InterruptedException e) {
                 e.printStackTrace();
             }

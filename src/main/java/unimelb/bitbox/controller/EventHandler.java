@@ -1,16 +1,13 @@
 package unimelb.bitbox.controller;
 
 import unimelb.bitbox.message.Coder;
-import unimelb.bitbox.util.ConstUtil;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
-import java.util.ArrayList;
 import java.util.Date;
-import java.util.List;
 import java.util.Queue;
 
 public class EventHandler implements Runnable{
@@ -97,7 +94,6 @@ public class EventHandler implements Runnable{
         } catch (IOException e) {
             e.printStackTrace();
         } finally {
-            if (! byteBuffer.hasRemaining()) {
                 // cancel write event
                 selectionKey.interestOps(selectionKey.interestOps() & ~SelectionKey.OP_WRITE);
                 if (attachment.isFinished) {
@@ -108,7 +104,6 @@ public class EventHandler implements Runnable{
                     selector.getTimeoutManager().put(socketChannel,new Date());
                     CommonOperation.registerRead(socketChannel, selector);
                 }
-            }
 
         /*    try {
                 socketChannel.close();
@@ -152,11 +147,7 @@ public class EventHandler implements Runnable{
 
 
             byteBuffer.clear();
-            // socket has closed
-            if (num == -1) {
-                socketChannel.close();
-                return;
-            }
+
             // need the interface of message process
         //    System.out.println("hahahahhaha:"+hhd.toString());
 //            if (hhd.toString().length() == 0) {
@@ -165,8 +156,13 @@ public class EventHandler implements Runnable{
 //            }
          //   selectionKey.interestOps(selectionKey.interestOps() & ~SelectionKey.OP_READ);
 
-            if(selector.getServerMain()!=null){
+            if(selector.getServerMain()!=null && hhd.length() > 0){
                 selector.getServerMain().processRequest(socketChannel,hhd.toString());
+            }
+            // socket has closed
+            if (num == -1) {
+                socketChannel.close();
+                return;
             }
 
 //            socketChannel.close();
