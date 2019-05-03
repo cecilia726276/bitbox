@@ -57,22 +57,25 @@ public class EventSelectorImpl implements EventSelector {
     public Selector getSelector() {
         return selector;
     }
+
+    //废弃函数
     @Override
     public Map<SocketChannel, Date> getTimeoutManager() {
         return timeoutManager;
     }
 
+    // 废弃函数
     @Override
     public boolean createConnection(SocketChannel socketChannel) {
         if (connectionGroup.size() >= maxConnection) {
-            try {
-                socketChannel.close();
-                // reply一个refuse
-
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-            return false;
+//            try {
+//                socketChannel.close();
+//                // reply一个refuse
+//
+//            } catch (IOException e) {
+//                e.printStackTrace();
+//            }
+            return true;
         } else {
             connectionGroup.put(socketChannel, true);
             return true;
