@@ -29,6 +29,7 @@ public class ClientImpl implements Client {
             SelectionKey selectionKey = eventSelector.registerChannel(socketChannel, SelectionKey.OP_CONNECT);
             selectionKey.attach(content);
             Selector s = eventSelector.getSelector();
+            eventSelector.getServerMain().addToHandshakeReqHistory(socketChannel);
             eventSelector.getTimeoutManager().put(socketChannel, new Date());
             s.wakeup();
             System.out.println("send1");
