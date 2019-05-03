@@ -21,6 +21,6 @@ public class ConstUtil {
     public static final String IP = Configuration.getConfigurationValue("advertisedName");
     public static final int PORT = Integer.parseInt(Configuration.getConfigurationValue("port"));
     public static final int BLOCKSIZE = Integer.parseInt(Configuration.getConfigurationValue("blockSize"));
-
+    public static final int RETRANS_MAXNUM = 3;
 
 }

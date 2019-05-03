@@ -1,10 +1,13 @@
 package unimelb.bitbox.controller;
 
+import java.util.List;
+import java.util.Queue;
+
 public class Attachment {
     public boolean isFinished;
-    public String content;
+    public Queue<String> content;
 
-    public Attachment(boolean isFinished, String content) {
+    public Attachment(boolean isFinished, Queue<String> content) {
         this.isFinished = isFinished;
         this.content = content;
     }
@@ -17,11 +20,11 @@ public class Attachment {
         isFinished = finished;
     }
 
-    public String getContent() {
+    public Queue<String> getContent() {
         return content;
     }
 
-    public void setContent(String content) {
+    public void setContent(Queue<String> content) {
         this.content = content;
     }
 }

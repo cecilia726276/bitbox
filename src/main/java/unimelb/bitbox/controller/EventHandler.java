@@ -7,7 +7,10 @@ import java.nio.ByteBuffer;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
+import java.util.ArrayList;
 import java.util.Date;
+import java.util.List;
+import java.util.Queue;
 
 public class EventHandler implements Runnable{
     private SelectionKey selectionKey;
@@ -51,7 +54,6 @@ public class EventHandler implements Runnable{
     }
     private void connectOperation () {
         String content = (String) selectionKey.attachment();
-        selectionKey.attach(new Attachment(false, content));
         SocketChannel channel = (SocketChannel) selectionKey.channel();
         if (channel.isConnectionPending()) {
             try {
@@ -70,19 +72,26 @@ public class EventHandler implements Runnable{
     private void writeOperation () {
         // a channel is ready for writing
         SocketChannel socketChannel = (SocketChannel) selectionKey.channel();
-        Attachment attachment = (Attachment) selectionKey.attachment();
-        if (attachment == null) {
+        Attachment attachment = EventSelectorImpl.getInstance().writeAttachments.get(socketChannel);
+        if (attachment == null || attachment.getContent().size() == 0) {
+            System.out.println("write size is 0");
             selectionKey.interestOps(selectionKey.interestOps() & ~SelectionKey.OP_WRITE);
             return;
         }
-        String content = attachment.getContent();
-        ByteBuffer byteBuffer = ByteBuffer.allocate(2*content.length());
-        byteBuffer.clear();
-        byteBuffer.put(content.getBytes());
-        byteBuffer.flip();
+        Queue<String> contents = attachment.getContent();
+        ByteBuffer byteBuffer = null;
+
         try {
-            socketChannel.write(byteBuffer);
-            System.out.println("Wirte："+content);
+            String content = "";
+            while (!contents.isEmpty()) {
+                content = contents.poll();
+                byteBuffer = ByteBuffer.allocate(2 * content.length());
+                byteBuffer.clear();
+                byteBuffer.put(content.getBytes());
+                byteBuffer.flip();
+                socketChannel.write(byteBuffer);
+                System.out.println("Wirte：" + content);
+            }
         } catch (IOException e) {
             e.printStackTrace();
         } finally {

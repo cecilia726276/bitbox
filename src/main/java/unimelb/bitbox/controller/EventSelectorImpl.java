@@ -9,10 +9,7 @@ import java.net.InetSocketAddress;
 import java.net.ServerSocket;
 import java.nio.channels.*;
 import java.sql.Timestamp;
-import java.util.Date;
-import java.util.Iterator;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.*;
 
 public class EventSelectorImpl implements EventSelector {
@@ -33,7 +30,7 @@ public class EventSelectorImpl implements EventSelector {
     private static EventSelectorImpl eventSelector = null;
     public Map<SelectionKey, Boolean> handingMap;
     public Map<SocketChannel, Boolean> connectionGroup;
-
+    public Map<SocketChannel, Attachment> writeAttachments;
     //
     public Map<SocketChannel, Date> timeoutManager;
 
@@ -68,14 +65,11 @@ public class EventSelectorImpl implements EventSelector {
     @Override
     public boolean createConnection(SocketChannel socketChannel) {
         if (connectionGroup.size() >= maxConnection) {
-//            try {
 //                socketChannel.close();
 //                // reply一个refuse
-//
-//            } catch (IOException e) {
-//                e.printStackTrace();
-//            }
-            return true;
+                serverMain.replyConnectionError(socketChannel);
+
+            return false;
         } else {
             connectionGroup.put(socketChannel, true);
             return true;
@@ -103,6 +97,7 @@ public class EventSelectorImpl implements EventSelector {
             handingMap = new ConcurrentHashMap<>();
             connectionGroup = new ConcurrentHashMap<>();
             timeoutManager = new ConcurrentHashMap<>();
+            writeAttachments = new ConcurrentHashMap<>();
         } catch (IOException e) {
             e.printStackTrace();
         }

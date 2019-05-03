@@ -1,5 +1,7 @@
 package unimelb.bitbox.service;
 
+import unimelb.bitbox.ContextManager;
+import unimelb.bitbox.EventDetail;
 import unimelb.bitbox.controller.Client;
 import unimelb.bitbox.controller.ClientImpl;
 import unimelb.bitbox.message.ProtocolUtils;
@@ -9,6 +11,7 @@ import unimelb.bitbox.util.FileSystemManager;
 import unimelb.bitbox.util.SocketProcessUtil;
 
 import java.nio.channels.SocketChannel;
+import java.util.Map;
 import java.util.Set;
 import java.util.logging.Logger;
 
@@ -71,17 +74,18 @@ public class DirectoryEventHandlerImpl implements DirectoryEventHandler {
         boolean isPeerOnTheList = socketChannelSet.contains(socketChannel);
         if (isPeerOnTheList) {
             String pathName = document.getString("pathName");
+            String content = "";
             if (fileSystemManager.dirNameExists(pathName)) {
                 boolean status = fileSystemManager.deleteDirectory(pathName);
                 if (status) {
-                    String content = ProtocolUtils.getDirResponse(ConstUtil.DIRECTORY_DELETE_RESPONSE, pathName, "Delete a directory successfully", status);
+                    content = ProtocolUtils.getDirResponse(ConstUtil.DIRECTORY_DELETE_RESPONSE, pathName, "Delete a directory successfully", status);
                     client.replyRequest(socketChannel, content, false);
                 } else {
-                    String content = ProtocolUtils.getDirResponse(ConstUtil.DIRECTORY_DELETE_RESPONSE, pathName, "Failed to delete a directory", status);
+                    content = ProtocolUtils.getDirResponse(ConstUtil.DIRECTORY_DELETE_RESPONSE, pathName, "Failed to delete a directory", status);
                     client.replyRequest(socketChannel, content, false);
                 }
             } else {
-                String content = ProtocolUtils.getDirResponse(ConstUtil.DIRECTORY_DELETE_RESPONSE, pathName, "Directory doesn't exists", false);
+                content = ProtocolUtils.getDirResponse(ConstUtil.DIRECTORY_DELETE_RESPONSE, pathName, "Directory doesn't exists", false);
                 client.replyRequest(socketChannel, content, false);
             }
         } else {
@@ -92,11 +96,37 @@ public class DirectoryEventHandlerImpl implements DirectoryEventHandler {
 
     @Override
     public void processDirCreateResponse(SocketChannel socketChannel, Document document) {
-        SocketProcessUtil.processCDResponse(document, ConstUtil.DIRECTORY_CREATE_RESPONSE, socketChannel, socketChannelSet, peerSet);
+        String pathName = document.getString("pathName");
+        Map<String, EventDetail> events = ContextManager.eventContext.get(socketChannel);
+        EventDetail eventDetail = ContextManager.checkEvents(socketChannel, pathName);
+        if (eventDetail == null) {
+            String content = ProtocolUtils.getInvalidProtocol("directory create event invalid: pathName:" + pathName);
+            SocketProcessUtil.sendRejectResponse(socketChannel, content, socketChannelSet, peerSet);
+        }
+        if (eventDetail.getCommand().equals(ConstUtil.DIRECTORY_CREATE_REQUEST)) {
+            events.remove("pathName");
+            SocketProcessUtil.processCDResponse(document, ConstUtil.DIRECTORY_CREATE_RESPONSE, socketChannel, socketChannelSet, peerSet);
+        } else {
+            String content = ProtocolUtils.getInvalidProtocol("directory create event invalid: pathName:" + pathName);
+            SocketProcessUtil.sendRejectResponse(socketChannel, content, socketChannelSet, peerSet);
+        }
     }
 
     @Override
     public void processDirDeleteResponse(SocketChannel socketChannel, Document document) {
-        SocketProcessUtil.processCDResponse(document, ConstUtil.DIRECTORY_DELETE_RESPONSE, socketChannel, socketChannelSet, peerSet);
+        String pathName = document.getString("pathName");
+        Map<String, EventDetail> events = ContextManager.eventContext.get(socketChannel);
+        EventDetail eventDetail = ContextManager.checkEvents(socketChannel, pathName);
+        if (eventDetail == null) {
+            String content = ProtocolUtils.getInvalidProtocol("directory delete event invalid: pathName:" + pathName);
+            SocketProcessUtil.sendRejectResponse(socketChannel, content, socketChannelSet, peerSet);
+        }
+        if (eventDetail.getCommand().equals(ConstUtil.DIRECTORY_DELETE_REQUEST)) {
+            events.remove("pathName");
+            SocketProcessUtil.processCDResponse(document, ConstUtil.DIRECTORY_DELETE_RESPONSE, socketChannel, socketChannelSet, peerSet);
+        } else {
+            String content = ProtocolUtils.getInvalidProtocol("directory create event invalid: pathName:" + pathName);
+            SocketProcessUtil.processCDResponse(document, ConstUtil.DIRECTORY_DELETE_RESPONSE, socketChannel, socketChannelSet, peerSet);
+        }
     }
 }

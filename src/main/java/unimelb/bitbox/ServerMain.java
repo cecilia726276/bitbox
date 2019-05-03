@@ -429,7 +429,12 @@ public class ServerMain implements FileSystemObserver {
         for (Object socketChannel: socketChannelSet){
             // add context control
             events = ContextManager.eventContext.get(socketChannel);
-            eventDetail = new EventDetail(fileSystemEvent.pathName,fileSystemEvent.fileDescriptor.toDoc(),
+            FileSystemManager.FileDescriptor f = fileSystemEvent.fileDescriptor;
+            Document fd = null;
+            if (f != null) {
+                fd = f.toDoc();
+            }
+            eventDetail = new EventDetail(fileSystemEvent.pathName,fd,
                     generatedRequest, command, System.currentTimeMillis(), false, 0);
             events.put(fileSystemEvent.pathName, eventDetail);
             

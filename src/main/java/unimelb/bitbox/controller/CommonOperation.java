@@ -4,6 +4,11 @@ import java.io.IOException;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.nio.channels.SocketChannel;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Map;
+import java.util.Queue;
+import java.util.concurrent.ConcurrentLinkedQueue;
 
 public class CommonOperation {
 
@@ -11,9 +16,15 @@ public class CommonOperation {
         try {
             System.out.println("write:" + content +" " +isFinal);
             socketChannel.configureBlocking(false);
-            SelectionKey selectionKey = selector.registerChannel(socketChannel, SelectionKey.OP_WRITE);
-            Attachment attachment = new Attachment(isFinal, content);
-            selectionKey.attach(attachment);
+            selector.registerChannel(socketChannel, SelectionKey.OP_WRITE);
+            Map<SocketChannel, Attachment> writeAttachments = EventSelectorImpl.getInstance().writeAttachments;
+            Attachment attachment = writeAttachments.get(socketChannel);
+            if (attachment == null) {
+                attachment = new Attachment(false, new ConcurrentLinkedQueue());
+                writeAttachments.put(socketChannel, attachment);
+            }
+            System.out.println("attachment size:"+ attachment.getContent().size());
+            attachment.getContent().add(content);
             Selector s =  selector.getSelector();
             s.wakeup();
         } catch (IOException e) {
