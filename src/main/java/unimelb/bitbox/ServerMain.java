@@ -357,7 +357,7 @@ public class ServerMain implements FileSystemObserver {
         switch (event){
             case FILE_CREATE: {
                 String createRequest = ProtocolUtils.getFileRequest("FILE_CREATE_REQUEST", fileSystemEvent.fileDescriptor.toDoc(),fileSystemEvent.pathName);
-                sendRequest(createRequest);
+                sendRequest(createRequest, fileSystemEvent, ConstUtil.FILE_CREATE_REQUEST);
                 ByteBuffer byteBuffer = null;
                 try {
                     byteBuffer = fileSystemManager.readFile(fileSystemEvent.fileDescriptor.md5, 0,fileSystemEvent.fileDescriptor.fileSize);
@@ -387,7 +387,7 @@ public class ServerMain implements FileSystemObserver {
             }
             case FILE_MODIFY: {
                 String modifyRequest = ProtocolUtils.getFileRequest("FILE_MODIFY_REQUEST", fileSystemEvent.fileDescriptor.toDoc(),fileSystemEvent.pathName);
-                sendRequest(modifyRequest);
+                sendRequest(modifyRequest, fileSystemEvent, ConstUtil.FILE_MODIFY_REQUEST);
                 String pathName = fileSystemEvent.pathName;
                 RequestState state = new RequestState("FILE_MODIFY_REQUEST", pathName);
                 //initialRespState(state);
@@ -395,27 +395,37 @@ public class ServerMain implements FileSystemObserver {
             }
             case FILE_DELETE:{
                 String deleteRequest = ProtocolUtils.getFileRequest("FILE_DELETE_REQUEST", fileSystemEvent.fileDescriptor.toDoc(),fileSystemEvent.pathName);
-                sendRequest(deleteRequest);
+                sendRequest(deleteRequest, fileSystemEvent, ConstUtil.FILE_DELETE_REQUEST);
                 break;
             }
             case DIRECTORY_CREATE:{
                 String createDirRequest = ProtocolUtils.getDirRequest("DIRECTORY_CREATE_REQUEST", fileSystemEvent.pathName);
-                sendRequest(createDirRequest);
+                sendRequest(createDirRequest, fileSystemEvent, ConstUtil.DIRECTORY_CREATE_REQUEST);
                 break;
             }
             case DIRECTORY_DELETE:{
                 String deleteDirRequest = ProtocolUtils.getDirRequest("DIRECTORY_DELETE_REQUEST",fileSystemEvent.pathName);
-                sendRequest(deleteDirRequest);
+                sendRequest(deleteDirRequest, fileSystemEvent, ConstUtil.DIRECTORY_DELETE_REQUEST);
                 break;
             }
             default:
         }
     }
 
-    private void sendRequest(String generatedRequest) {
+    private void sendRequest(String generatedRequest, FileSystemEvent fileSystemEvent, String command) {
+        Map<String, EventDetail> events;
+        EventDetail eventDetail;
+
         for (Object socketChannel: socketChannelSet){
+            // add context control
+            events = ContextManager.eventContext.get(socketChannel);
+            eventDetail = new EventDetail(fileSystemEvent.pathName,fileSystemEvent.fileDescriptor.toDoc(),
+                    generatedRequest, command, System.currentTimeMillis(), false, 0);
+            events.put(fileSystemEvent.pathName, eventDetail);
+            
             client.replyRequest((SocketChannel) socketChannel, generatedRequest,false);
             log.info("send to socketchannel: "+ socketChannel.toString());
+
         }
 //        for (Object peer: peerSet){
 //            HostPort hp = new HostPort((Document) peer);
