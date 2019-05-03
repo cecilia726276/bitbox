@@ -1,6 +1,7 @@
 package unimelb.bitbox.controller;
 
 import unimelb.bitbox.message.Coder;
+import unimelb.bitbox.util.ConstUtil;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -91,6 +92,7 @@ public class EventHandler implements Runnable{
                 byteBuffer.flip();
                 socketChannel.write(byteBuffer);
                 System.out.println("Wirte：" + content);
+                System.out.println("Writelength:"+content.length());
             }
         } catch (IOException e) {
             e.printStackTrace();
@@ -118,34 +120,49 @@ public class EventHandler implements Runnable{
     private void readOperation () {
         System.out.println("read");
         // a channel is ready for reading
-        ByteBuffer byteBuffer = ByteBuffer.allocate(1048576);
+        ByteBuffer byteBuffer = ByteBuffer.allocate(2048);
         SocketChannel socketChannel = (SocketChannel) selectionKey.channel();
+
         try {
             StringBuffer hhd = new StringBuffer();
-          //  while (socketChannel.read(byteBuffer) != -1) {
-            int num = socketChannel.read(byteBuffer);
+            int num;
+            while ((num=socketChannel.read(byteBuffer)) > 0) {
+                socketChannel.read(byteBuffer);
+                System.out.println("the number is :" + num);
+                System.out.println("the content is  is :" + num);
+
+
+//                if (byteBuffer.hasRemaining()) {
+                    byteBuffer.flip();
+
+                    hhd.append(Coder.INSTANCE.getDecoder().decode(byteBuffer).toString());
+                    byteBuffer.flip();
+                    byteBuffer.clear();
+
+//                }
+            }
+            System.out.println("read: length:"+hhd.length());
+            System.out.println("read: length:"+hhd.length());
+
+            System.out.println("read: length:"+hhd.length());
+            System.out.println("read: length:"+hhd.length());
+            System.out.println("read: length:"+hhd.length());
+            System.out.println("read: length:"+hhd.length());
+
+
+
+            byteBuffer.clear();
             // socket has closed
             if (num == -1) {
                 socketChannel.close();
                 return;
             }
-            if (byteBuffer.hasRemaining()) {
-                byteBuffer.flip();
-
-                hhd.append(Coder.INSTANCE.getDecoder().decode(byteBuffer).toString());
-             //   System.out.println(hhd.toString());
-
-                byteBuffer.flip();
-                byteBuffer.clear();
-
-            }
-         //   }
             // need the interface of message process
-            System.out.println(hhd.toString());
-            if (hhd.toString().length() == 0) {
-                System.out.println("zero problem "+num);
-                return;
-            }
+        //    System.out.println("hahahahhaha:"+hhd.toString());
+//            if (hhd.toString().length() == 0) {
+//             //   System.out.println("zero problem "+num);
+//                return;
+//            }
          //   selectionKey.interestOps(selectionKey.interestOps() & ~SelectionKey.OP_READ);
 
             if(selector.getServerMain()!=null){
