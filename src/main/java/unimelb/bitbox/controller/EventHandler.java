@@ -4,9 +4,10 @@ import unimelb.bitbox.message.Coder;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
-import java.nio.channels.*;
+import java.nio.channels.SelectionKey;
+import java.nio.channels.ServerSocketChannel;
+import java.nio.channels.SocketChannel;
 import java.util.Date;
-import java.util.Map;
 
 public class EventHandler implements Runnable{
     private SelectionKey selectionKey;
@@ -70,6 +71,10 @@ public class EventHandler implements Runnable{
         // a channel is ready for writing
         SocketChannel socketChannel = (SocketChannel) selectionKey.channel();
         Attachment attachment = (Attachment) selectionKey.attachment();
+        if (attachment == null) {
+            selectionKey.interestOps(selectionKey.interestOps() & ~SelectionKey.OP_WRITE);
+            return;
+        }
         String content = attachment.getContent();
         ByteBuffer byteBuffer = ByteBuffer.allocate(2*content.length());
         byteBuffer.clear();

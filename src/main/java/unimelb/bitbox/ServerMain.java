@@ -104,7 +104,7 @@ public class ServerMain implements FileSystemObserver {
         fileSystemManager=new FileSystemManager(Configuration.getConfigurationValue("path"),this);
         String[] peers = Configuration.getConfigurationValue("peers").split(",");
         handshakeEventHandler = new HandshakeEventHandlerImpl(fileSystemManager,log,socketChannelSet,peerSet,handshakeReqHistory);
-        bytesEventHandler = new BytesEventHandlerImpl(fileSystemManager);
+        bytesEventHandler = new BytesEventHandlerImpl(fileSystemManager,log,socketChannelSet,peerSet);
         directoryEventHandler = new DirectoryEventHandlerImpl(fileSystemManager,log,socketChannelSet,peerSet);
         fileEventHandler = new FileEventHandlerImpl(fileSystemManager, log, socketChannelSet, peerSet, handshakeReqHistory);
         for (String peer:peers){
