@@ -53,7 +53,7 @@ public class ServerMain implements FileSystemObserver {
      * Record the sending history of HANDSHAKE_REQUEST to other peers to validate the received HANDSHAKE_RESPONSE
      */
     //private Set handshakeReqHistory = Collections.synchronizedSet(new HashSet<SocketChannel>());
-    private Set handshakeReqHistory = Collections.synchronizedSet(new HashSet<HostPort>());
+    private Set handshakeReqHistory = Collections.synchronizedSet(new HashSet<SocketChannel>());
 
     /**
      * Record SocketChannels
@@ -121,12 +121,14 @@ public class ServerMain implements FileSystemObserver {
             /**
              * The peer records the sending history to other peers.
              */
-            handshakeReqHistory.add(hostPort);
 
         }
 
     }
 
+    public void addToHandshakeReqHistory(SocketChannel socketChannel){
+        handshakeReqHistory.add(socketChannel);
+    }
     /**
      * only OP_READ would call this method
      * 1. read buffer

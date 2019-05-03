@@ -7,7 +7,6 @@ import unimelb.bitbox.message.ProtocolUtils;
 import unimelb.bitbox.util.*;
 
 import java.nio.channels.SocketChannel;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -89,7 +88,7 @@ public class HandshakeEventHandlerImpl implements HandshakeEventHandler{
             /**
              * get the hostport lists to this hostPort to see if there should be a response
              */
-            boolean sentRequestBefore = handshakeReqHistory.contains(hostPort) && !socketChannelSet.contains(hostPort.toDoc());
+            boolean sentRequestBefore = handshakeReqHistory.contains(socketChannel) && !socketChannelSet.contains(socketChannel);
             //boolean sentRequestBefore = handshakeReqHistory.contains(hostPort) && !peerSet.contains(hostPort.toDoc());
             if (sentRequestBefore) {
                 socketChannelSet.add(socketChannel);
@@ -119,7 +118,7 @@ public class HandshakeEventHandlerImpl implements HandshakeEventHandler{
          */
 
         HostPort hostPort = SocketProcessUtil.getHostPort(socketChannel);
-        boolean handshakeBefore = handshakeReqHistory.contains(hostPort.toDoc());
+        boolean handshakeBefore = handshakeReqHistory.contains(socketChannel);
         if (handshakeBefore) {
             List<Document> existingPeers = (List<Document>) document.get("message");
             HostPort firstPeers = new HostPort(existingPeers.get(0));
@@ -128,7 +127,6 @@ public class HandshakeEventHandlerImpl implements HandshakeEventHandler{
             /**
              * The peer that tried to connect should do a breadth first search of peers in the peers list, attempt to make a connection to one of them.
              */
-            handshakeReqHistory.add(new HostPort(firstPeers.host, firstPeers.port));
 
         } else {
             String invalidResponse = ProtocolUtils.getInvalidProtocol("Not waiting for a handshake response from this peer");
