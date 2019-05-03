@@ -1,5 +1,6 @@
 package unimelb.bitbox.service;
 
+import unimelb.bitbox.ContextManager;
 import unimelb.bitbox.controller.Client;
 import unimelb.bitbox.controller.ClientImpl;
 import unimelb.bitbox.message.ProtocolUtils;
@@ -9,6 +10,7 @@ import java.nio.channels.SocketChannel;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Logger;
 
 public class HandshakeEventHandlerImpl implements HandshakeEventHandler{
@@ -51,12 +53,12 @@ public class HandshakeEventHandlerImpl implements HandshakeEventHandler{
             /**
              * If the maximum incomming connections have been reached:
              */
-            else if (socketChannelSet.size() + 1 > ConstUtil.MAXIMUM_INCOMMING_CONNECTIONS) {
-                List list = new ArrayList(peerSet);
-                String content = ProtocolUtils.getConnectionRefusedRequest(list);
-                client.replyRequest(socketChannel, content, true);
-                log.info("send CONNECTION_REFUSED");
-            } else {
+//            else if (socketChannelSet.size() + 1 > ConstUtil.MAXIMUM_INCOMMING_CONNECTIONS) {
+//                List list = new ArrayList(peerSet);
+//                String content = ProtocolUtils.getConnectionRefusedRequest(list);
+//                client.replyRequest(socketChannel, content, true);
+//                log.info("send CONNECTION_REFUSED");
+            else {
                 /**
                  * If everything is fine, establish the connection and send back handshake response
                  */
@@ -64,6 +66,9 @@ public class HandshakeEventHandlerImpl implements HandshakeEventHandler{
                 client.replyRequest(socketChannel, content, false);
                 socketChannelSet.add(socketChannel);
                 peerSet.add(hostPort.toDoc());
+
+                // create new context to manage this socketchannel
+                ContextManager.eventContext.put(socketChannel, new ConcurrentHashMap<>(20));
 
                 log.info("send HANDSHAKE_RESPONSE");
             }
@@ -89,6 +94,9 @@ public class HandshakeEventHandlerImpl implements HandshakeEventHandler{
             if (sentRequestBefore) {
                 socketChannelSet.add(socketChannel);
                 peerSet.add(hostPort.toDoc());
+
+                // create new context to manage this socketchannel
+                ContextManager.eventContext.put(socketChannel, new ConcurrentHashMap<>(20));
                 log.info("establish Connection");
             } else {
                 String content = ProtocolUtils.getInvalidProtocol("Invalid handshake response.");
