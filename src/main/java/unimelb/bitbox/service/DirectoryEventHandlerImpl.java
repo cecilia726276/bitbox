@@ -24,9 +24,9 @@ public class DirectoryEventHandlerImpl implements DirectoryEventHandler {
     private Client client;
     private Logger log;
     private Set socketChannelSet;
-    private Set peerSet;
+    private Map peerSet;
     public DirectoryEventHandlerImpl(FileSystemManager fileSystemManager, Logger logger,
-                                     Set socketChannelSet, Set peerSet) {
+                                     Set socketChannelSet, Map peerSet) {
         this.fileSystemManager = fileSystemManager;
         this.client = ClientImpl.getInstance();
         this.log = logger;
@@ -104,7 +104,7 @@ public class DirectoryEventHandlerImpl implements DirectoryEventHandler {
             SocketProcessUtil.sendRejectResponse(socketChannel, content, socketChannelSet, peerSet);
         }
         if (eventDetail.getCommand().equals(ConstUtil.DIRECTORY_CREATE_REQUEST)) {
-            events.remove("pathName");
+            events.remove(pathName);
             SocketProcessUtil.processCDResponse(document, ConstUtil.DIRECTORY_CREATE_RESPONSE, socketChannel, socketChannelSet, peerSet);
         } else {
             String content = ProtocolUtils.getInvalidProtocol("directory create event invalid: pathName:" + pathName);
@@ -122,7 +122,7 @@ public class DirectoryEventHandlerImpl implements DirectoryEventHandler {
             SocketProcessUtil.sendRejectResponse(socketChannel, content, socketChannelSet, peerSet);
         }
         if (eventDetail.getCommand().equals(ConstUtil.DIRECTORY_DELETE_REQUEST)) {
-            events.remove("pathName");
+            events.remove(pathName);
             SocketProcessUtil.processCDResponse(document, ConstUtil.DIRECTORY_DELETE_RESPONSE, socketChannel, socketChannelSet, peerSet);
         } else {
             String content = ProtocolUtils.getInvalidProtocol("directory create event invalid: pathName:" + pathName);

@@ -48,7 +48,7 @@ public class ServerMain implements FileSystemObserver {
     /**
      * Record current connections
      */
-    private Set peerSet = Collections.synchronizedSet(new HashSet<Document>());
+    private Map<SocketChannel, Document> peerSet = new ConcurrentHashMap<>();
 
     /**
      * Record the sending history of HANDSHAKE_REQUEST to other peers to validate the received HANDSHAKE_RESPONSE
@@ -141,16 +141,21 @@ public class ServerMain implements FileSystemObserver {
      * @param socketChannel
      */
     public void processRequest(SocketChannel socketChannel, String string) {
-        String split = "}\\{";
+
+        System.out.println("what's wrong "+string.length());
+        System.out.println("what's wrong2");
+        System.out.println("what;s wrong :"+string);
+        String split = "\n";
         String[] processList = string.split(split);
         for (String s : processList){
-            if (s.charAt(s.length()-1) != '}'){
-                s = s + '}';
-            }
-            if (s.charAt(0) != '{'){
-                s = '{' + s;
-            }
-            processEachMessage(socketChannel,s);
+//            char a = s.charAt(s.length()-1);
+//            if (s.charAt(s.length()-1) != '}'){
+//                s = s + '}';
+//            }
+//            if (s.charAt(0) != '{'){
+//                s = '{' + s;
+//            }
+            processEachMessage(socketChannel,s.trim());
         }
 
     }
@@ -160,7 +165,10 @@ public class ServerMain implements FileSystemObserver {
      * @param socketChannel
      */
     public void replyConnectionError(SocketChannel socketChannel){
-        List list = new ArrayList(peerSet);
+        List list = new ArrayList();
+        for (Map.Entry<SocketChannel, Document> peer : peerSet.entrySet()) {
+            list.add(peer.getValue());
+        }
         String content = ProtocolUtils.getConnectionRefusedRequest(list);
         client.replyRequest(socketChannel, content, true);
         log.info("send CONNECTION_REFUSED");
@@ -171,6 +179,12 @@ public class ServerMain implements FileSystemObserver {
         Document document = Document.parse(string);
         log.info("input String: " + string);
         String command = document.getString("command");
+        if(command == null) {
+            String content = ProtocolUtils.getInvalidProtocol("message must contain a command field as string");
+            sendRejectResponse(socketChannel, content);
+            log.info("send INVALID_PROTOCOL");
+            return;
+        }
         switch (command) {
             case ConstUtil.INVALID_PROTOCOL: {
                 log.info(command + document.getString("message"));
@@ -343,21 +357,19 @@ public class ServerMain implements FileSystemObserver {
      * If a socket was closed, the host would remove the peer from its existing set (and incoming connection set)
      * @param socketChannel
      */
-    private void deletePeer(SocketChannel socketChannel) {
+    public void deletePeer(SocketChannel socketChannel) {
         socketChannelSet.remove(socketChannel);
         InetSocketAddress socketAddress;
-        try {
-            HostPort hostPort = retrieveHostport(socketChannel);
-            /**
-             * update existing connections
-             */
-            if (peerSet.contains(hostPort.toDoc())){
-                peerSet.remove(hostPort.toDoc());
-            }
-        } catch (IOException e) {
-            e.printStackTrace();
+//      HostPort hostPort = retrieveHostport(socketChannel);
+        /**
+         * update existing connections
+         */
+        System.out.println("done");
+        if (peerSet.get(socketChannel) != null){
+            peerSet.remove(socketChannel);
         }
-        client.closeSocket(socketChannel);
+
+//        client.closeSocket(socketChannel);
     }
 
 

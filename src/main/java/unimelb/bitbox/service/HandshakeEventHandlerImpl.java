@@ -7,7 +7,9 @@ import unimelb.bitbox.message.ProtocolUtils;
 import unimelb.bitbox.util.*;
 
 import java.nio.channels.SocketChannel;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Logger;
@@ -17,10 +19,10 @@ public class HandshakeEventHandlerImpl implements HandshakeEventHandler{
     private Client client;
     private Logger log;
     private Set socketChannelSet;
-    private Set peerSet;
+    private Map peerSet;
     private Set handshakeReqHistory;
     public HandshakeEventHandlerImpl(FileSystemManager fileSystemManager, Logger logger,
-                                     Set socketChannelSet, Set peerSet, Set handshakeReqHistory) {
+                                     Set socketChannelSet, Map peerSet, Set handshakeReqHistory) {
         this.fileSystemManager = fileSystemManager;
         this.client = ClientImpl.getInstance();
         this.log = logger;
@@ -64,7 +66,7 @@ public class HandshakeEventHandlerImpl implements HandshakeEventHandler{
                 String content = ProtocolUtils.getHandShakeResponse(new HostPort(ConstUtil.IP, ConstUtil.PORT).toDoc());
                 client.replyRequest(socketChannel, content, false);
                 socketChannelSet.add(socketChannel);
-                peerSet.add(hostPort.toDoc());
+                peerSet.put(socketChannel, hostPort.toDoc());
 
                 // create new context to manage this socketchannel
                 ContextManager.eventContext.put(socketChannel, new ConcurrentHashMap<>(20));
@@ -92,7 +94,7 @@ public class HandshakeEventHandlerImpl implements HandshakeEventHandler{
             //boolean sentRequestBefore = handshakeReqHistory.contains(hostPort) && !peerSet.contains(hostPort.toDoc());
             if (sentRequestBefore) {
                 socketChannelSet.add(socketChannel);
-                peerSet.add(hostPort.toDoc());
+                peerSet.put(socketChannel, hostPort.toDoc());
 
                 // create new context to manage this socketchannel
                 ContextManager.eventContext.put(socketChannel, new ConcurrentHashMap<>(20));

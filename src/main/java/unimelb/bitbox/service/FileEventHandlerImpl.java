@@ -1,16 +1,15 @@
 package unimelb.bitbox.service;
 
+import unimelb.bitbox.ContextManager;
+import unimelb.bitbox.EventDetail;
 import unimelb.bitbox.controller.Client;
 import unimelb.bitbox.controller.ClientImpl;
 import unimelb.bitbox.message.ProtocolUtils;
 import unimelb.bitbox.util.*;
 
-import java.io.FileDescriptor;
 import java.io.IOException;
 import java.nio.channels.SocketChannel;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.logging.Logger;
 
@@ -19,10 +18,10 @@ public class FileEventHandlerImpl implements FileEventHandler {
     private Client client;
     private Logger log;
     private Set socketChannelSet;
-    private Set peerSet;
+    private Map peerSet;
     private Set handshakeReqHistory;
 
-    public FileEventHandlerImpl(FileSystemManager fileSystemManager, Logger log, Set socketChannelSet, Set peerSet, Set handshakeReqHistory) {
+    public FileEventHandlerImpl(FileSystemManager fileSystemManager, Logger log, Set socketChannelSet, Map peerSet, Set handshakeReqHistory) {
         this.fileSystemManager = fileSystemManager;
         this.log = log;
         this.socketChannelSet = socketChannelSet;
@@ -47,8 +46,12 @@ public class FileEventHandlerImpl implements FileEventHandler {
         HostPort hostPort = SocketProcessUtil.getHostPort(socketChannel);
         log.info("hostport from sss file create request: ip: " + hostPort.host + " port: " + hostPort.port);
         boolean isPeerOnTheList = socketChannelSet.contains(socketChannel);
+
+        //get context of events in this channel
+        Map<String, EventDetail> eventdetails =  ContextManager.eventContext.get(socketChannel);
+
         //boolean isPeerOnTheList = checkOntheList(socketChannel,peerSet);
-        if (isPeerOnTheList)//&& !checkInReqStateMap(requestState1,hostPort) && !checkInReqStateMap(requestState2,hostPort) && !existPathNameList.contains(pathName))
+        if (isPeerOnTheList || eventdetails != null)//&& !checkInReqStateMap(requestState1,hostPort) && !checkInReqStateMap(requestState2,hostPort) && !existPathNameList.contains(pathName))
         {
             Document fileDescriptor = (Document) document.get("fileDescriptor");
             String md5 = fileDescriptor.getString("md5");
@@ -60,13 +63,11 @@ public class FileEventHandlerImpl implements FileEventHandler {
                 if (!fileSystemManager.fileNameExists(pathName, fileDescriptor.getString("md5"))) {
                     try {
                         boolean status = fileSystemManager.createFileLoader(pathName, md5, fileSize, lastModified);
-                        // 此处需要更新状态机 - 根据一个filedescriptor创建了一个fileloader这个事件
                         /**
                          * If another file already exists with the same content,
                          * use that file's content (i.e. does a copy) to create the intended file.
                          */
                         if (fileSystemManager.checkShortcut(pathName)) {
-                            // 此处需要更新状态机 - 这个fileloader （通过filedescriptor作为key识别）已经被取消
                             fileSystemManager.cancelFileLoader(pathName);
                             String fileResponse = ProtocolUtils.getFileResponse(ConstUtil.FILE_CREATE_RESPONSE, fileDescriptor, pathName, true, "file create complete");
                             client.replyRequest(socketChannel, fileResponse, true);
@@ -83,8 +84,12 @@ public class FileEventHandlerImpl implements FileEventHandler {
 //                                        existPathNameList.add(pathName);
                                 //初始化file_bytes_response 的状态机（记录下自己已经发送了file_bytes_request）
                                 if (client.replyRequest(socketChannel, fileBytesRequest, false)) {
-
-                                    //TODO: 此处需要加状态机
+                                    //add context of file byte request.
+                                    EventDetail eventDetail = new EventDetail(pathName,fileDescriptor,fileBytesRequest,ConstUtil.FILE_BYTES_REQUEST, System.currentTimeMillis(),
+                                            false,0);
+                                    eventDetail.setPosition(0);
+                                    eventDetail.setSentLength(length);
+                                    eventdetails.put(pathName, eventDetail);
                                 }
                             } else {
                                 String content = ProtocolUtils.getFileResponse(ConstUtil.FILE_CREATE_RESPONSE, fileDescriptor, pathName, status, "Failed to create file loader.");
@@ -116,21 +121,32 @@ public class FileEventHandlerImpl implements FileEventHandler {
         boolean status = document.getBoolean("status");
         HostPort hostPort = SocketProcessUtil.getHostPort(socketChannel);
         String pathName = document.getString("pathName");
-        if (status) {
-            // TODO: 此处需要加状态机
+        Map<String, EventDetail> events = ContextManager.eventContext.get(socketChannel);
+        if (events == null) {
+            return;
         }
-        SocketProcessUtil.processCDResponse(document, ConstUtil.FILE_CREATE_RESPONSE, socketChannel, socketChannelSet, peerSet);
+        EventDetail eventDetail = events.get(pathName);
+        if (!status && eventDetail != null) {
+            events.remove(pathName);
+        }else if (status && eventDetail != null && eventDetail.getCommand().equals(ConstUtil.FILE_CREATE_REQUEST)) {
+            eventDetail.setEnd(true);
+            eventDetail.setTimestamp(System.currentTimeMillis());
+            SocketProcessUtil.processCDResponse(document, ConstUtil.FILE_CREATE_RESPONSE, socketChannel, socketChannelSet, peerSet);
+        }
     }
 
     @Override
     public void FileModifyRequestProcess(SocketChannel socketChannel, Document document) {
+        //get context of events in this channel
+        Map<String, EventDetail> eventdetails =  ContextManager.eventContext.get(socketChannel);
         String pathName = document.getString("pathName");
 //                RequestState requestState1 = new RequestState("FILE_CREATE_REQUEST",pathName);
 //                RequestState requestState2 = new RequestState("FILE_CREATE_MODIFY",pathName);
         HostPort hostPort = SocketProcessUtil.getHostPort(socketChannel);
         boolean isPeerOnTheList = socketChannelSet.contains(socketChannel);
         //boolean isPeerOnTheList = checkOntheList(socketChannel,peerSet);
-        if (isPeerOnTheList)//&& !checkInReqStateMap(requestState1,hostPort) && !checkInReqStateMap(requestState2,hostPort) && !existPathNameList.contains(pathName))
+
+        if (isPeerOnTheList || eventdetails != null)//&& !checkInReqStateMap(requestState1,hostPort) && !checkInReqStateMap(requestState2,hostPort) && !existPathNameList.contains(pathName))
         {
 
             Document fileDescriptor = (Document) document.get("fileDescriptor");
@@ -145,8 +161,6 @@ public class FileEventHandlerImpl implements FileEventHandler {
                     boolean status = fileSystemManager.modifyFileLoader(pathName, md5, lastModified);
                     if (status) {
                         String content = ProtocolUtils.getFileResponse(ConstUtil.FILE_MODIFY_RESPONSE, fileDescriptor, pathName, status, "Modify File Loader");
-
-
                         //fileTransferTable.put(fileDescriptor.toJson(), length);
                         // 此处需要更新状态机
 //                                RequestState requestState = new RequestState("FILE_MODIFY_REQUEST", pathName);
@@ -154,6 +168,17 @@ public class FileEventHandlerImpl implements FileEventHandler {
 //                                existPathNameList.add(pathName);
                         String fileBytesRequest = getFileBytesRequest(socketChannel,content,fileSize,fileDescriptor,pathName);
                         client.replyRequest(socketChannel, fileBytesRequest, false);
+                        long length = fileSize;
+                        if (fileSize / ConstUtil.BLOCKSIZE > 1) {
+                            length = ConstUtil.BLOCKSIZE;
+                        }
+
+                        EventDetail eventDetail = new EventDetail(pathName,fileDescriptor,fileBytesRequest,ConstUtil.FILE_BYTES_REQUEST, System.currentTimeMillis(),
+                                false,0);
+                        eventDetail.setPosition(0);
+                        eventDetail.setSentLength(length);
+                        eventdetails.put(pathName, eventDetail);
+
                     } else {
                         String content = ProtocolUtils.getFileResponse(ConstUtil.FILE_MODIFY_RESPONSE, fileDescriptor, pathName, false, "Failed to modify file");
                         client.replyRequest(socketChannel, content, false);
@@ -176,13 +201,20 @@ public class FileEventHandlerImpl implements FileEventHandler {
     @Override
     public void FileModifyResponseProcess(SocketChannel socketChannel, Document document) {
         boolean status = document.getBoolean("status");
-        HostPort hostPort = SocketProcessUtil.getHostPort(socketChannel);
         String pathName = document.getString("pathName");
-        if (status) {
-            //TODO: 此处添加状态机
-
+        Map<String, EventDetail> events = ContextManager.eventContext.get(socketChannel);
+        if (events == null) {
+            return;
         }
-        SocketProcessUtil.processCDResponse(document, ConstUtil.FILE_MODIFY_RESPONSE, socketChannel,socketChannelSet,peerSet);
+        EventDetail eventDetail = events.get(pathName);
+        if (!status && eventDetail != null) {
+            events.remove(pathName);
+        } else if (status && eventDetail!=null && eventDetail.getCommand().equals(ConstUtil.FILE_MODIFY_REQUEST)) {
+            //TODO: 此处添加状态机
+            eventDetail.setEnd(true);
+            eventDetail.setTimestamp(System.currentTimeMillis());
+            SocketProcessUtil.processCDResponse(document, ConstUtil.FILE_MODIFY_RESPONSE, socketChannel,socketChannelSet,peerSet);
+        }
     }
 
     @Override
@@ -215,7 +247,12 @@ public class FileEventHandlerImpl implements FileEventHandler {
 
     @Override
     public void FileDeleteResponseProcess(SocketChannel socketChannel, Document document) {
-        SocketProcessUtil.processCDResponse(document, ConstUtil.FILE_DELETE_RESPONSE, socketChannel, socketChannelSet, peerSet);
-
+        Map<String, EventDetail> eventDetails = ContextManager.eventContext.get(socketChannel);
+        String pathName = document.getString("pathName");
+        EventDetail eventDetail = eventDetails.get(pathName);
+        if (eventDetail != null && eventDetail.getCommand().equals(ConstUtil.FILE_DELETE_REQUEST)) {
+            eventDetails.remove(pathName);
+            SocketProcessUtil.processCDResponse(document, ConstUtil.FILE_DELETE_RESPONSE, socketChannel, socketChannelSet, peerSet);
+        }
     }
 }

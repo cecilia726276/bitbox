@@ -8,6 +8,7 @@ import unimelb.bitbox.message.ProtocolUtils;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.channels.SocketChannel;
+import java.util.Map;
 import java.util.Set;
 
 public class SocketProcessUtil {
@@ -27,8 +28,8 @@ public class SocketProcessUtil {
         }
 
     }
-
-    public static void sendRejectResponse(SocketChannel socketChannel, String content, Set socketChannelSet, Set peerSet) {
+    // TODO: 这个函数直接把channel关掉是不是不太好啊
+    public static void sendRejectResponse(SocketChannel socketChannel, String content, Set socketChannelSet, Map peerSet) {
         Client client = ClientImpl.getInstance();
         client.replyRequest(socketChannel, content, true);
         socketChannelSet.remove(socketChannel);
@@ -37,13 +38,10 @@ public class SocketProcessUtil {
         /**
          * update existing connections
          */
-        if (peerSet.contains(hostPort.toDoc())) {
-            peerSet.remove(hostPort.toDoc());
-        }
+        peerSet.remove(socketChannel);
 
-        client.closeSocket(socketChannel);
     }
-    public static void processCDResponse(Document document, String command, SocketChannel socketChannel,  Set socketChannelSet, Set peerSet) {
+    public static void processCDResponse(Document document, String command, SocketChannel socketChannel,  Set socketChannelSet, Map peerSet) {
         ServerMain.log.info(command);
         ServerMain.log.info("status: " + document.getBoolean("status") + ", message: " + document.getString("message"));
         // 此处需要判断状态机 - host有没有给这个peer发送过FILE_CREATE_REQUEST/DELETE请求

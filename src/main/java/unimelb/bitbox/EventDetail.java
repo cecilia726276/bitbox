@@ -12,6 +12,8 @@ public class EventDetail {
     private long timestamp;
     private boolean isEnd;
     private int retransNumber;
+    private long sentLength;
+    private long position;
 
     public EventDetail(String path, Document fileDescriptor, String lastContext, String command, long timestamp, boolean isEnd, int retransNumber) {
         this.path = path;
@@ -42,7 +44,21 @@ public class EventDetail {
         this.retransNumber = retransNumber;
     }
 
+    public long getSentLength() {
+        return sentLength;
+    }
 
+    public void setSentLength(long sentLength) {
+        this.sentLength = sentLength;
+    }
+
+    public long getPosition() {
+        return position;
+    }
+
+    public void setPosition(long position) {
+        this.position = position;
+    }
 
     public String getPath() {
         return path;

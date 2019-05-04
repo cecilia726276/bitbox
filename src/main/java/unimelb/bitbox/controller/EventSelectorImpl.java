@@ -3,6 +3,7 @@ package unimelb.bitbox.controller;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import unimelb.bitbox.ServerMain;
 import unimelb.bitbox.util.Configuration;
+import unimelb.bitbox.util.ConstUtil;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
@@ -80,6 +81,7 @@ public class EventSelectorImpl implements EventSelector {
     @Override
     public boolean removeConnection(SocketChannel socketChannel) {
         try {
+            System.out.println("i am removed");
             socketChannel.close();
         } catch (IOException e) {
             e.printStackTrace();
@@ -114,8 +116,7 @@ public class EventSelectorImpl implements EventSelector {
     }
     private boolean initConfiguration () {
         port = Integer.valueOf(Configuration.getConfigurationValue("port"));
-        maxConnection = Integer.valueOf(
-                Configuration.getConfigurationValue("maximumIncommingConnections"));
+        maxConnection = ConstUtil.MAXIMUM_INCOMMING_CONNECTIONS;
         return true;
     }
 

@@ -7,6 +7,7 @@ import java.nio.ByteBuffer;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
+import java.sql.SQLOutput;
 import java.util.Date;
 import java.util.Queue;
 
@@ -87,9 +88,12 @@ public class EventHandler implements Runnable{
                 byteBuffer.clear();
                 byteBuffer.put(content.getBytes());
                 byteBuffer.flip();
-                socketChannel.write(byteBuffer);
+                while (byteBuffer.hasRemaining()) {
+                    socketChannel.write(byteBuffer);
+                }
                 System.out.println("Wirte：" + content);
                 System.out.println("Writelength:"+content.length());
+                byteBuffer.clear();
             }
         } catch (IOException e) {
             e.printStackTrace();
@@ -122,32 +126,22 @@ public class EventHandler implements Runnable{
             StringBuffer hhd = new StringBuffer();
             int num;
             while ((num=socketChannel.read(byteBuffer)) > 0) {
-                socketChannel.read(byteBuffer);
+
                 System.out.println("the number is :" + num);
                 System.out.println("the content is  is :" + num);
-
-
 //                if (byteBuffer.hasRemaining()) {
                     byteBuffer.flip();
-
+                    //Coder.INSTANCE.getDecoder().decode(byteBuffer).toString()
                     hhd.append(Coder.INSTANCE.getDecoder().decode(byteBuffer).toString());
                     byteBuffer.flip();
                     byteBuffer.clear();
-
 //                }
             }
             System.out.println("read: length:"+hhd.length());
             System.out.println("read: length:"+hhd.length());
-
-            System.out.println("read: length:"+hhd.length());
-            System.out.println("read: length:"+hhd.length());
-            System.out.println("read: length:"+hhd.length());
-            System.out.println("read: length:"+hhd.length());
-
-
+            System.out.println(hhd.toString());
 
             byteBuffer.clear();
-
             // need the interface of message process
         //    System.out.println("hahahahhaha:"+hhd.toString());
 //            if (hhd.toString().length() == 0) {
@@ -155,10 +149,12 @@ public class EventHandler implements Runnable{
 //                return;
 //            }
          //   selectionKey.interestOps(selectionKey.interestOps() & ~SelectionKey.OP_READ);
+            System.out.println("read content:"+hhd.toString().trim());
 
             if(selector.getServerMain()!=null && hhd.length() > 0){
-                selector.getServerMain().processRequest(socketChannel,hhd.toString());
+                selector.getServerMain().processRequest(socketChannel, hhd.toString().trim());
             }
+
             // socket has closed
             if (num == -1) {
                 socketChannel.close();
@@ -167,6 +163,13 @@ public class EventHandler implements Runnable{
 
 //            socketChannel.close();
         } catch (IOException e) {
+            try {
+                socketChannel.close();
+            } catch (IOException e1) {
+                e1.printStackTrace();
+            }
+            selector.getServerMain().deletePeer(socketChannel);
+            selector.removeConnection(socketChannel);
             e.printStackTrace();
         }
     }

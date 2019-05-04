@@ -22,5 +22,7 @@ public class ConstUtil {
     public static final int PORT = Integer.parseInt(Configuration.getConfigurationValue("port"));
     public static final int BLOCKSIZE = Integer.parseInt(Configuration.getConfigurationValue("blockSize"));
     public static final int RETRANS_MAXNUM = 3;
+    public static final int TIME_OUT = 10000;
+    public static final int SYNC_INTERVAL = 1000 * Integer.parseInt(Configuration.getConfigurationValue("syncInterval"));
 
 }
