@@ -60,7 +60,7 @@ public class FileEventHandlerImpl implements FileEventHandler {
 
             //String pathName = document.getString("pathName");
             if (fileSystemManager.isSafePathName(pathName)) {
-                if (!fileSystemManager.fileNameExists(pathName, fileDescriptor.getString("md5"))) {
+                if (!fileSystemManager.fileNameExists(pathName)) {
                     try {
                         boolean status = fileSystemManager.createFileLoader(pathName, md5, fileSize, lastModified);
                         /**
@@ -70,7 +70,7 @@ public class FileEventHandlerImpl implements FileEventHandler {
                         if (fileSystemManager.checkShortcut(pathName)) {
                             fileSystemManager.cancelFileLoader(pathName);
                             String fileResponse = ProtocolUtils.getFileResponse(ConstUtil.FILE_CREATE_RESPONSE, fileDescriptor, pathName, true, "file create complete");
-                            client.replyRequest(socketChannel, fileResponse, true);
+                            client.replyRequest(socketChannel, fileResponse, false);
                         } else {
                             if (status) {
                                 String fileResponse = ProtocolUtils.getFileResponse(ConstUtil.FILE_CREATE_RESPONSE, fileDescriptor, pathName, true, "file loader ready");
@@ -226,7 +226,7 @@ public class FileEventHandlerImpl implements FileEventHandler {
             String md5 = fileDescriptor.getString("md5");
             long lastModified = fileDescriptor.getLong("lastModified");
             String pathName = document.getString("pathName");
-            if (fileSystemManager.fileNameExists(pathName, fileDescriptor.getString("md5"))) {
+            if (fileSystemManager.fileNameExists(pathName)) {
                 boolean status = fileSystemManager.deleteFile(pathName, lastModified, md5);
                 if (status) {
                     String content = ProtocolUtils.getFileResponse(ConstUtil.FILE_DELETE_RESPONSE, fileDescriptor, pathName, status, "File delete successfully");

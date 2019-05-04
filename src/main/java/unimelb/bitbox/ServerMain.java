@@ -506,6 +506,7 @@ public class ServerMain implements FileSystemObserver {
     public void syncProcess() {
         List<FileSystemManager.FileSystemEvent> list = fileSystemManager.generateSyncEvents();
         for (FileSystemManager.FileSystemEvent fileSystemEvent : list) {
+            System.out.println("ahahahahah");
             processFileSystemEvent(fileSystemEvent);
         }
     }

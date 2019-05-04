@@ -33,7 +33,7 @@ public class SyncRunner implements Runnable {
             Date date = new Date();
             System.out.println("test sync and timeout");
 
-          //  serverMain.syncProcess();
+            serverMain.syncProcess();
 
             //timeout process manage
             System.out.println("***checktimeout***");

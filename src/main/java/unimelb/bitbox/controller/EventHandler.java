@@ -61,7 +61,7 @@ public class EventHandler implements Runnable{
                 }
             } catch (IOException e) {
                 // 连接不上需要调用一个函数
-
+                selector.removeConnection(channel);
                 e.printStackTrace();
                 return;
             }
@@ -96,6 +96,8 @@ public class EventHandler implements Runnable{
                 byteBuffer.clear();
             }
         } catch (IOException e) {
+            selector.getServerMain().deletePeer(socketChannel);
+            selector.removeConnection(socketChannel);
             e.printStackTrace();
         } finally {
                 // cancel write event

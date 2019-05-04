@@ -26,6 +26,8 @@ public class CommonOperation {
             Selector s =  selector.getSelector();
             s.wakeup();
         } catch (IOException e) {
+            EventSelectorImpl.getInstance().removeConnection(socketChannel);
+            EventSelectorImpl.getInstance().getServerMain().deletePeer(socketChannel);
             e.printStackTrace();
             return false;
         }
@@ -38,6 +40,8 @@ public class CommonOperation {
             selector.registerChannel(socketChannel, SelectionKey.OP_READ);
             selector.getSelector().wakeup();
         } catch (IOException e) {
+            EventSelectorImpl.getInstance().removeConnection(socketChannel);
+            EventSelectorImpl.getInstance().getServerMain().deletePeer(socketChannel);
             e.printStackTrace();
         }
         return true;
