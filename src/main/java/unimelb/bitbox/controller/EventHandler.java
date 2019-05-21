@@ -41,9 +41,14 @@ public class EventHandler implements Runnable{
         try {
             SocketChannel socketChannel = serverSocketChannel.accept();
          //   System.out.println(socketChannel.socket().getLocalAddress()+":"+socketChannel.socket().getPort());
-            if (!selector.createConnection(socketChannel)) {
-                System.out.println("the number of connection is too much");
-                return;
+            // judge that if the server socket is for client or for peer
+            if (selector.isClientControlSocket(serverSocketChannel)) {
+                EventSelectorImpl.clientSockets.add(socketChannel);
+            } else {
+                if (!selector.createConnection(socketChannel)) {
+                    System.out.println("the number of connection is too much");
+                    return;
+                }
             }
             CommonOperation.registerRead(socketChannel, selector);
 //          System.out.println("hah");
@@ -103,6 +108,7 @@ public class EventHandler implements Runnable{
                 // cancel write event
                 selectionKey.interestOps(selectionKey.interestOps() & ~SelectionKey.OP_WRITE);
                 if (attachment.isFinished) {
+                    selector.getServerMain().deletePeer(socketChannel);
                     selector.removeConnection(socketChannel);
 //                    selectionKey.cancel();
                 } else {
@@ -154,7 +160,11 @@ public class EventHandler implements Runnable{
             System.out.println("read content:"+hhd.toString().trim());
 
             if(selector.getServerMain()!=null && hhd.length() > 0){
-                selector.getServerMain().processRequest(socketChannel, hhd.toString().trim());
+                if (!EventSelectorImpl.clientSockets.contains(socketChannel)) {
+                    selector.getServerMain().processRequest(socketChannel, hhd.toString().trim());
+                } else {
+                    //TODO: 另一个接口， 专门处理client发来的信息
+                }
             }
 
             // socket has closed

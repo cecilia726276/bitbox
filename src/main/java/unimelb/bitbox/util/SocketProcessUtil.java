@@ -4,6 +4,7 @@ import unimelb.bitbox.ServerMain;
 import unimelb.bitbox.controller.Client;
 import unimelb.bitbox.controller.ClientImpl;
 import unimelb.bitbox.message.ProtocolUtils;
+import unimelb.bitbox.udpcontroller.FakeSocketChannel;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
@@ -14,7 +15,12 @@ import java.util.Set;
 public class SocketProcessUtil {
     public static HostPort getHostPort(SocketChannel socketChannel) {
         try {
-            InetSocketAddress socketAddress = (InetSocketAddress) socketChannel.getRemoteAddress();
+            InetSocketAddress socketAddress = null;
+            if (ConstUtil.MODE.equals(ConstUtil.TCP_MODE)) {
+                socketAddress = (InetSocketAddress) socketChannel.getRemoteAddress();
+            } else {
+                socketAddress = (InetSocketAddress) ((FakeSocketChannel)socketChannel).getSocketAddress();
+            }
             String ip = socketAddress.getAddress().toString();
             int port = socketAddress.getPort();
             HostPort hostPort = new HostPort(ip, port);

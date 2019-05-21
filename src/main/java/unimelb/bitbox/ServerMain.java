@@ -4,6 +4,7 @@ import unimelb.bitbox.controller.ClientImpl;
 import unimelb.bitbox.controller.EventSelectorImpl;
 import unimelb.bitbox.message.ProtocolUtils;
 import unimelb.bitbox.service.*;
+import unimelb.bitbox.udpcontroller.UdpSelector;
 import unimelb.bitbox.util.*;
 import unimelb.bitbox.util.FileSystemManager.FileSystemEvent;
 
@@ -104,7 +105,8 @@ public class ServerMain implements FileSystemObserver {
     public ServerMain() throws NumberFormatException, IOException, NoSuchAlgorithmException {
         EventSelectorImpl eventSelector = EventSelectorImpl.getInstance();
         ((EventSelectorImpl) eventSelector).setServerMain(this);
-
+        UdpSelector udpSelector = UdpSelector.getInstance();
+        udpSelector.setServerMain(this);
         fileSystemManager=new FileSystemManager(Configuration.getConfigurationValue("path"),this);
         String[] peers = Configuration.getConfigurationValue("peers").split(",");
         handshakeEventHandler = new HandshakeEventHandlerImpl(fileSystemManager,log,socketChannelSet,peerSet,handshakeReqHistory);
@@ -121,7 +123,14 @@ public class ServerMain implements FileSystemObserver {
          */
         for (HostPort hostPort: hostPorts){
             String handshakeRequest = ProtocolUtils.getHandShakeRequest(new HostPort(ip, port).toDoc());
-            client.sendRequest(handshakeRequest,hostPort.host,hostPort.port);
+            SocketChannel socketChannel = client.sendRequest(handshakeRequest,hostPort.host,hostPort.port);
+            if (socketChannel != null) {
+                ConcurrentHashMap<String, EventDetail> details = new ConcurrentHashMap<>(20);
+                details.put(ConstUtil.HANDSHAKE_TOKEN,
+                        new EventDetail(ConstUtil.HANDSHAKE_TOKEN, null, handshakeRequest,
+                                ConstUtil.HANDSHAKE_REQUEST, System.currentTimeMillis(),false,0));
+                ContextManager.eventContext.put(socketChannel, details);
+            }
             /**
              * The peer records the sending history to other peers.
              */
@@ -181,8 +190,9 @@ public class ServerMain implements FileSystemObserver {
         String command = document.getString("command");
         if(command == null) {
             String content = ProtocolUtils.getInvalidProtocol("message must contain a command field as string");
-            sendRejectResponse(socketChannel, content);
-            log.info("send INVALID_PROTOCOL");
+            //TODO:bilibili
+//            sendRejectResponse(socketChannel, content);
+//            log.info("send INVALID_PROTOCOL");
             return;
         }
         switch (command) {
@@ -370,6 +380,12 @@ public class ServerMain implements FileSystemObserver {
         }
 
 //        client.closeSocket(socketChannel);
+    }
+    public boolean checkPeer(SocketChannel socketChannel) {
+        if (peerSet.get(socketChannel) != null) {
+            return true;
+        }
+        return false;
     }
 
 

@@ -22,6 +22,14 @@ public class EventSelectorImpl implements EventSelector {
         return serverMain;
     }
 
+    @Override
+    public boolean isClientControlSocket(ServerSocketChannel serverSocketChannel) {
+        if (serverSocketChannel.equals(clientControlChannel)) {
+            return true;
+        }
+        return false;
+    }
+
     public void setServerMain(ServerMain serverMain) {
         this.serverMain = serverMain;
     }
@@ -34,6 +42,8 @@ public class EventSelectorImpl implements EventSelector {
     public Map<SocketChannel, Attachment> writeAttachments;
     //
     public Map<SocketChannel, Date> timeoutManager;
+
+    public static Set clientSockets = Collections.synchronizedSet(new HashSet<SocketChannel>());
 
 
     // configure params
@@ -62,7 +72,6 @@ public class EventSelectorImpl implements EventSelector {
         return timeoutManager;
     }
 
-    // 废弃函数
     @Override
     public boolean createConnection(SocketChannel socketChannel) {
         if (connectionGroup.size() >= maxConnection) {
@@ -86,6 +95,7 @@ public class EventSelectorImpl implements EventSelector {
         } catch (IOException e) {
             e.printStackTrace();
         }
+        EventSelectorImpl.clientSockets.remove(socketChannel);
         connectionGroup.remove(socketChannel);
         return false;
     }
@@ -143,16 +153,31 @@ public class EventSelectorImpl implements EventSelector {
 
         return selectionKey;
     }
+    private ServerSocketChannel clientControlChannel;
     @Override
     public void controllerRunning() {
         ServerSocketChannel serverSocketChannel = null;
         try {
-            serverSocketChannel = ServerSocketChannel.open();
+            ServerSocket ss = null;
+            if (ConstUtil.MODE.equals(ConstUtil.TCP_MODE)) {
+                serverSocketChannel = ServerSocketChannel.open();
 
-            ServerSocket ss = serverSocketChannel.socket();
-            ss.bind(new InetSocketAddress(port));
-            serverSocketChannel.configureBlocking(false);
-            serverSocketChannel.register(selector, SelectionKey.OP_ACCEPT);
+                ss = serverSocketChannel.socket();
+                ss.bind(new InetSocketAddress(port));
+                serverSocketChannel.configureBlocking(false);
+                serverSocketChannel.register(selector, SelectionKey.OP_ACCEPT);
+            }
+            /**
+             * this server socket channel is serving for the client,
+             * this is using the client port
+             */
+            clientControlChannel = null;
+            clientControlChannel = ServerSocketChannel.open();
+            ss = clientControlChannel.socket();
+            ss.bind(new InetSocketAddress(ConstUtil.CLIENT_PORT));
+            clientControlChannel.configureBlocking(false);
+            clientControlChannel.register(selector, SelectionKey.OP_ACCEPT);
+
         } catch (IOException e) {
             e.printStackTrace();
             return;

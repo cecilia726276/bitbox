@@ -59,5 +59,6 @@ public interface EventSelector {
 
     public ServerMain getServerMain();
 
+    public boolean isClientControlSocket(ServerSocketChannel serverSocketChannel);
 
     }

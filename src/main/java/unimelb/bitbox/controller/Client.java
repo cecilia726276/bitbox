@@ -11,7 +11,7 @@ public interface Client {
      * @param port
      * @return
      */
-    public boolean sendRequest(String content, String ip, int port);
+    public SocketChannel sendRequest(String content, String ip, int port);
 
     /**
      * send reply to other peer
