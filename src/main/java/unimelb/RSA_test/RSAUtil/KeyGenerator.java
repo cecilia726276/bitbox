@@ -1,7 +1,7 @@
 package unimelb.RSA_test.RSAUtil;
 
-import sun.misc.BASE64Decoder;
-
+//import sun.misc.BASE64Decoder;
+import java.util.Base64;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.DataInputStream;
@@ -37,8 +37,8 @@ public class KeyGenerator {
         return privateKey;
     }
     public static byte[] base642Byte(String base64Key) throws IOException{
-        BASE64Decoder decoder = new BASE64Decoder();
-        return decoder.decodeBuffer(base64Key);
+        //BASE64Decoder decoder = new BASE64Decoder();
+        return Base64.getDecoder().decode(base64Key);
     }
 
     public static int decodeUInt32(byte[] key, int start_index){

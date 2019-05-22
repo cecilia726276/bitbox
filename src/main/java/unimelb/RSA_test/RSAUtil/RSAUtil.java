@@ -11,9 +11,9 @@ import java.security.spec.X509EncodedKeySpec;
 
 import javax.crypto.Cipher;
 
-import sun.misc.BASE64Decoder;
-import sun.misc.BASE64Encoder;
-import unimelb.bitbox.message.FileCoder;
+import java.util.Base64;
+//import sun.misc.BASE64Decoder;
+//import sun.misc.BASE64Encoder;
 
 public class RSAUtil {
     //生成秘钥对
@@ -74,16 +74,14 @@ public class RSAUtil {
 
     //字节数组转Base64编码
     public static String byte2Base64(byte[] bytes){
-        BASE64Encoder encoder = new BASE64Encoder();
-        // return FileCoder.INSTANCE.getEncoder().encodeToString(bytes);
-        return encoder.encode(bytes);
+        //BASE64Encoder encoder = new BASE64Encoder();
+        return Base64.getEncoder().encodeToString(bytes);
     }
 
     //Base64编码转字节数组
     public static byte[] base642Byte(String base64Key) throws IOException{
-        BASE64Decoder decoder = new BASE64Decoder();
-        // return FileCoder.INSTANCE.getDecoder().decode(base64Key);
-        return decoder.decodeBuffer(base64Key);
+        //BASE64Decoder decoder = new BASE64Decoder();
+        return Base64.getDecoder().decode(base64Key);
     }
 
 
