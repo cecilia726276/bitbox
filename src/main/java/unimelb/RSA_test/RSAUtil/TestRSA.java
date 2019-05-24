@@ -21,10 +21,12 @@ public class TestRSA {
             //===============生成公钥和私钥，公钥传给客户端，私钥服务端保留==================
             //生成RSA公钥和私钥，并Base64编码
             //KeyPair keyPair = RSAUtil.getKeyPair();
-            String pubStr = "AAAAB3NzaC1yc2EAAAADAQABAAABAQDnYPzgyKwBT9vdxyXMdIGmx+EEISgdqWNvqRBEF3dtUItLA1JtSH0n8LMcNPm3RA5X1GxTTjrhOi8cACOyZknk+M97i6hTTV55zHOLzztS6s9OcDFb5YEi2je3LjDNBaLYPKI6+fpTKRaXSTWNoF76oW0zAv77AQzvJ1xz7n8wWkfmS6JyC4a/QcUojnBLU6KZPmNAS1Q/xuh2cfhS+6A2XcofwfVaXS2/+Z90/3NHqVWnRIyyJtGxRAYUgpuU9wUqF6+AxLnx4V2xRoB7y/OpJeYP1IhLHjcqmj/C0jqf38tXBum3jjBKd98/WcG5jD07zlxteA699nYPJW9H1TuJ";
+            //String pubStr = "AAAAB3NzaC1yc2EAAAADAQABAAABAQDnYPzgyKwBT9vdxyXMdIGmx+EEISgdqWNvqRBEF3dtUItLA1JtSH0n8LMcNPm3RA5X1GxTTjrhOi8cACOyZknk+M97i6hTTV55zHOLzztS6s9OcDFb5YEi2je3LjDNBaLYPKI6+fpTKRaXSTWNoF76oW0zAv77AQzvJ1xz7n8wWkfmS6JyC4a/QcUojnBLU6KZPmNAS1Q/xuh2cfhS+6A2XcofwfVaXS2/+Z90/3NHqVWnRIyyJtGxRAYUgpuU9wUqF6+AxLnx4V2xRoB7y/OpJeYP1IhLHjcqmj/C0jqf38tXBum3jjBKd98/WcG5jD07zlxteA699nYPJW9H1TuJ";
+            String pubStr = "AAAAB3NzaC1yc2EAAAADAQABAAABAQC1n+AC0q5yx2UHwpSLXO3KNgeZVoz3rjAZPe797I0NbgFROy1AcF52OF9JHw0k/zpTF0KRDUz8Cn/UxWsBfZU1umvz9qXvorX9RoS9glQJwiL2JntcmSV5F26HbNIYnZlRr5M4lw0CVlZ5JpfETjn40OcrNUBIXSQUruX1lXPwgj0+HhfWhnYn4uzhEwS4ZnVxZR06fp4LsgLtsqoonECZotUfnu800pVFFaZ0H0HIBAiZGCRlPeWtJXaVF1R3Pq5F4O60FHRLdy9F/YAZvfqCbhC7tjyAmcvO6FiEsHT/pbaDxqY1rlKRx916a3UDAMrxUIW0GNhAxzRtXTRVQrrV";
             byte[] byteKey = Base64.getDecoder().decode(pubStr);
             PublicKey publicKey = KeyGenerator.decodePublicKey(byteKey);
-            String message = "Hello World!";
+            //String message = "Hello World!";
+            String message = "igYd/UkW+R2ZbWazCoJYMg==";
             System.out.println("raw message:"+message);
             //encrypt with public key
             byte[] publicEncrypt = RSAUtil.publicEncrypt(message.getBytes(), publicKey);
@@ -32,7 +34,8 @@ public class TestRSA {
             String byte2Base64 = RSAUtil.byte2Base64(publicEncrypt);
             System.out.println("公钥加密并Base64编码的结果：" + byte2Base64);
 
-            PrivateKey privateKey = KeyGenerator.getPrivateKey("E:/unimelb_cs/distributed systems/project1/bitbox/src/main/java/unimelb/RSA_test/test2.der");
+            //PrivateKey privateKey = KeyGenerator.getPrivateKey("E:/unimelb_cs/distributed systems/project1/bitbox/src/main/java/unimelb/RSA_test/test2.der");
+            PrivateKey privateKey = KeyGenerator.toPrivateKey("abc");
             //加密后的内容Base64解码
             byte[] base642Byte = RSAUtil.base642Byte(byte2Base64);
             //用私钥解密

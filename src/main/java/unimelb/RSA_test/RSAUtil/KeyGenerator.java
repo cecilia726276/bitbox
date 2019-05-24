@@ -1,28 +1,126 @@
 package unimelb.RSA_test.RSAUtil;
 
 //import sun.misc.BASE64Decoder;
+import java.io.*;
+import java.security.spec.*;
 import java.util.Base64;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.DataInputStream;
-import java.io.IOException;
 import java.security.NoSuchAlgorithmException;
-import java.security.spec.InvalidKeySpecException;
-import java.security.spec.KeySpec;
-import java.security.spec.RSAPublicKeySpec;
 import java.security.interfaces.RSAPublicKey;
 import java.security.KeyFactory;
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
 import java.security.PrivateKey;
 import java.security.PublicKey;
-import java.security.spec.PKCS8EncodedKeySpec;
-import java.security.spec.X509EncodedKeySpec;
-import java.util.Base64;
 import java.math.BigInteger;
 import java.util.Arrays;
 
+//java.security.Security.addProvider(new org.bouncycastle.jce.provider.BouncyCastleProvider());
+
+//import org.bouncycastle.util.io.pem.PemObject;
+//import org.bouncycastle.util.io.pem.PemReader;
+import sun.security.util.DerInputStream;
+import sun.security.util.DerValue;
+
 public class KeyGenerator {
+    public static PrivateKey toPrivateKey(String privateKeyFileName) {
+        String str = "MIIEowIBAAKCAQEAtZ/gAtKucsdlB8KUi1ztyjYHmVaM964wGT3u/eyNDW4BUTst" +
+                "QHBedjhfSR8NJP86UxdCkQ1M/Ap/1MVrAX2VNbpr8/al76K1/UaEvYJUCcIi9iZ7" +
+                "XJkleRduh2zSGJ2ZUa+TOJcNAlZWeSaXxE45+NDnKzVASF0kFK7l9ZVz8II9Ph4X" +
+                "1oZ2J+Ls4RMEuGZ1cWUdOn6eC7IC7bKqKJxAmaLVH57vNNKVRRWmdB9ByAQImRgk" +
+                "ZT3lrSV2lRdUdz6uReDutBR0S3cvRf2AGb36gm4Qu7Y8gJnLzuhYhLB0/6W2g8am" +
+                "Na5Skcfdemt1AwDK8VCFtBjYQMc0bV00VUK61QIDAQABAoIBADfbKi5UErhT4BtJ" +
+                "2RsfAjZM9XtP5dyKIlqw9F39MMfvi9Iqi9kkdbiPz6YSOZ2mLI6/OYaYe5OLuxJ5" +
+                "gFYeBBRY97g4o4GWHbf9xvbtLOEvZkcjQI8SvjaGYUSez+IoHa3EfFdMBQEyAjgS" +
+                "CVyi3itKO73LC7D1jBIcU7Z6NwTA1EUUEEn5OXdms0Qjakb0o2xG38MgIZE2LB9b" +
+                "d5qfDZIDh0R8NtvPMCOJAAJXJOtHbMXqnQG2txS+rIBjbgZB1DTLQse8+gcGFk+K" +
+                "HSIlvdWRMcakRyUi04uv0DoXIX6dYo0cJod5n712yKitunj2kiFxjTSIORQjkmoP" +
+                "kgYyLIUCgYEA4eCOnj/HO7xzxF7lsoo35ud6ZTT9fO4zPsoP2XxXnYwKml5W3kjp" +
+                "SnJG3rsFQYHwR7TqUWZsKJmKURoAAmNKYqfpG+uYAxawjHlZ/yLb/Rurgdm/eYAa" +
+                "YIAi/miBxHPuBLqGH5h07abU8DbP1SnoMcqXgctPHZfs/DeBRury1FMCgYEAzdiI" +
+                "YgBnnrQIwzCwF03PUM9qgj47H0tm5UvXdq5kxPpmvZs4tJ504hPDAvi1hAWMga8b" +
+                "YewDBfPKr2tEDN8A2fFfj/xTAz+sIt+8h64hOy2KAaS0HoyvbCO1Qp0JAmXbEPPh" +
+                "3Zymkvj2/WBifajKn0Xye0pOH1pcd5II1sv4zzcCgYB0fYIv/QZ8OVGfGa3uqTfx" +
+                "XroRzgVZU+Ob40vPR0BMYTfqqvK0Cvg9y7ffEKbCRQgtgxFBT8hCHAVolDcjBCAN" +
+                "xzkCjDtGhIIiwEb4vPqli4qlGi6Us8tmr07c0/rw3TUIvUWEr/TFx7+T70C6V7WH" +
+                "UEtYxgiUY5D19o42i98WPwKBgCBmA1lBbQ26kmJ+aEjSs12pt77WIqITURen7zq7" +
+                "yhqCuub+5lbvVcA7kgcGtDMaWHoU4H9yESu/qlgfzu8jrlOfPQZBlaM+Q06d3mOQ" +
+                "kaRpz33guYTRac7gc+gPJVreQzOQ3yztOf6J9v38TKQwi+uzq62iDVe79i/PqVp9" +
+                "ciTTAoGBANgZhFUgPFqyrAYp0DUFdAQZQs9l56VyvvaPi5SQER/3RPA2nx4hND00" +
+                "G+C1dHGKu8OKhmUHmOLAeAelm10spx2+BCZONrvLqMh8JB1sWG0k+3suOPuA2yio" +
+                "SkHXIpS4Kfn+yC3OQq7xAGuZFLghuX1lysWkjF4r5Ry+K493UxkS";
+        //FileInputStream fis = new FileInputStream("id_rsa");
+        byte[] decodeKeyinfo = Base64.getDecoder().decode(str);
+
+        //byte[]  = (new BASE64Decoder()).decodeBuffer(keyinfo);
+
+        try{
+            //使用 DerInputStream 读取密钥信息
+            DerInputStream dis = new DerInputStream(decodeKeyinfo);
+//密钥不含 otherPrimeInfos 信息，故只有 9 段
+            DerValue[] ders = dis.getSequence(9);
+//依次读取 RSA 因子信息
+            int version = ders[0].getBigInteger().intValue();
+            BigInteger modulus = ders[1].getBigInteger();
+            BigInteger publicExponent = ders[2].getBigInteger();
+            BigInteger privateExponent = ders[3].getBigInteger();
+            BigInteger primeP = ders[4].getBigInteger();
+            BigInteger primeQ = ders[5].getBigInteger();
+            BigInteger primeExponentP = ders[6].getBigInteger();
+            BigInteger primeExponentQ = ders[7].getBigInteger();
+            BigInteger crtCoefficient = ders[8].getBigInteger();
+//generate public key and private key
+            KeyFactory keyFactory = KeyFactory.getInstance("RSA");
+            RSAPublicKeySpec rsaPublicKeySpec =
+                    new RSAPublicKeySpec(modulus, publicExponent);
+            PublicKey publicKey = keyFactory.generatePublic(rsaPublicKeySpec);
+            RSAPrivateCrtKeySpec rsaPrivateKeySpec =
+                    new RSAPrivateCrtKeySpec(modulus,publicExponent,privateExponent,
+                            primeP,primeQ,primeExponentP,primeExponentQ,crtCoefficient);
+            PrivateKey privateKey = keyFactory.generatePrivate(rsaPrivateKeySpec);
+            return privateKey;
+        }catch (Exception e){e.printStackTrace();}
+
+//        PublicKey pubk = keyPair.getPublic();
+//        System.out.println(pubk);
+
+
+//        KeySpec keySpec = new X509EncodedKeySpec(pubk.getEncoded());
+//        KeyFactory keyFactory = KeyFactory.getInstance("RSA");
+//        System.out.println(keyFactory.generatePublic(keySpec));
+//
+//        KeySpec keySpec2 = new PKCS8EncodedKeySpec(prik.getEncoded());
+//        System.out.println(keyFactory.generatePrivate(keySpec2));
+//        byte[] bytes = Base64.getDecoder().decode(str);
+//        //StringReader reader = new StringReader(str);
+//
+//        try {
+//            //FileReader fileReader = new FileReader(privateKeyFileName);
+//            //char[] ch = new char[1024] ;
+////            int len = 0;
+////            while((len = fileReader.read(ch))!= -1){
+////                System.out.println(new String(ch,0,len));
+////                System.out.println();
+////            }
+////            System.out.println();fileReader.read();
+//
+//           // PemReader pemReader = new PemReader(fileReader);
+////            PemReader pemReader = new PemReader(reader);
+////            PemObject pemObject = pemReader.readPemObject();
+////            byte[] pemContent = pemObject.getContent();
+////            pemReader.close();
+//            //fileReader.close();
+//            final PKCS8EncodedKeySpec encodedKeySpec = new PKCS8EncodedKeySpec(bytes);
+//            final KeyFactory keyFactory = KeyFactory.getInstance("RSA");
+//            final PrivateKey privateKey = keyFactory.generatePrivate(encodedKeySpec);
+//            return privateKey;
+//
+//        } catch (Exception e) {
+//            e.printStackTrace();
+//        }
+//
+        return null;
+    }
+
     public static PrivateKey getPrivateKey(String fileName) throws Exception{
         //openssl pkcs8 -topk8 -inform PEM -outform DER -in private_key.pem -out private_key.der -nocrypt
         File file = new File(fileName);
@@ -86,10 +184,13 @@ public class KeyGenerator {
 //                System.out.print(priByteKey[i]);
 
             //PublicKey publicKey = KeyGenerator.decodePublicKey(byteKey);
-            PrivateKey privateKey = KeyGenerator.getPrivateKey("E:/COMP90015Proj2/src/private_key.der");
-            //System.out.println(publicKey);
+            //PrivateKey privateKey = KeyGenerator.getPrivateKey("E:/COMP90015Proj2/src/private_key.der");
+            String privateFileName = "E:/unimelb_cs/distributed systems/project1/bitbox/src/main/java/unimelb/RSA_test/client_rsa.pem";
 
+            PrivateKey privateKey = toPrivateKey(privateFileName);
             System.out.println(privateKey);
+
+            //System.out.println(privateKey);
         }catch(Exception e){e.printStackTrace();}
 
 
