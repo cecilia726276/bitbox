@@ -8,18 +8,22 @@ import java.util.concurrent.ConcurrentHashMap;
 
 public class AESKeyManager {
     public static Map<SocketChannel, String> AESMap = new ConcurrentHashMap<>();
-    public boolean generateAESKey(SocketChannel socketChannel) {
+    public static String generateAESKey(SocketChannel socketChannel) {
         try{
+            if(AESMap.containsKey(socketChannel))
+                return AESMap.get(socketChannel);
             String key = AESUtil.generateKey();
             AESMap.put(socketChannel, key);
-            return true;
+            return key;
         }catch (Exception e){
             e.printStackTrace();
         }
         System.out.println("fail to generate AES key.");
-        return false;
+        return null;
     }
-    public String AESdecrypt(SocketChannel socketChannel, String encryMsg) {
+
+
+    public static String AESdecrypt(SocketChannel socketChannel, String encryMsg) {
         String key = AESMap.get(socketChannel);
         if (key == null) {
             System.out.println("not find AES key, please make sure key generated.");
@@ -33,7 +37,7 @@ public class AESKeyManager {
         }
         return null;
     }
-    public String AESencrypt(SocketChannel socketChannel, String rawMsg) {
+    public static String AESencrypt(SocketChannel socketChannel, String rawMsg) {
         String key = AESMap.get(socketChannel);
         if (key == null) {
             System.out.println("not find AES key, please make sure key generated.");

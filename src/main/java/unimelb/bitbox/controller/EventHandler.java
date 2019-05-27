@@ -164,7 +164,7 @@ public class EventHandler implements Runnable{
                     selector.getServerMain().processRequest(socketChannel, hhd.toString().trim());
                 } else {
                     //TODO: 另一个接口， 专门处理client发来的信息
-
+                    ClientMessageHandler.getInstance().processEachRequest(socketChannel, hhd.toString().trim());
                 }
             }
 

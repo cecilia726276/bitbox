@@ -22,33 +22,34 @@ import sun.security.util.DerInputStream;
 import sun.security.util.DerValue;
 
 public class KeyGenerator {
-    public static PrivateKey toPrivateKey(String privateKeyFileName) {
-        String str = "MIIEowIBAAKCAQEAtZ/gAtKucsdlB8KUi1ztyjYHmVaM964wGT3u/eyNDW4BUTst" +
-                "QHBedjhfSR8NJP86UxdCkQ1M/Ap/1MVrAX2VNbpr8/al76K1/UaEvYJUCcIi9iZ7" +
-                "XJkleRduh2zSGJ2ZUa+TOJcNAlZWeSaXxE45+NDnKzVASF0kFK7l9ZVz8II9Ph4X" +
-                "1oZ2J+Ls4RMEuGZ1cWUdOn6eC7IC7bKqKJxAmaLVH57vNNKVRRWmdB9ByAQImRgk" +
-                "ZT3lrSV2lRdUdz6uReDutBR0S3cvRf2AGb36gm4Qu7Y8gJnLzuhYhLB0/6W2g8am" +
-                "Na5Skcfdemt1AwDK8VCFtBjYQMc0bV00VUK61QIDAQABAoIBADfbKi5UErhT4BtJ" +
-                "2RsfAjZM9XtP5dyKIlqw9F39MMfvi9Iqi9kkdbiPz6YSOZ2mLI6/OYaYe5OLuxJ5" +
-                "gFYeBBRY97g4o4GWHbf9xvbtLOEvZkcjQI8SvjaGYUSez+IoHa3EfFdMBQEyAjgS" +
-                "CVyi3itKO73LC7D1jBIcU7Z6NwTA1EUUEEn5OXdms0Qjakb0o2xG38MgIZE2LB9b" +
-                "d5qfDZIDh0R8NtvPMCOJAAJXJOtHbMXqnQG2txS+rIBjbgZB1DTLQse8+gcGFk+K" +
-                "HSIlvdWRMcakRyUi04uv0DoXIX6dYo0cJod5n712yKitunj2kiFxjTSIORQjkmoP" +
-                "kgYyLIUCgYEA4eCOnj/HO7xzxF7lsoo35ud6ZTT9fO4zPsoP2XxXnYwKml5W3kjp" +
-                "SnJG3rsFQYHwR7TqUWZsKJmKURoAAmNKYqfpG+uYAxawjHlZ/yLb/Rurgdm/eYAa" +
-                "YIAi/miBxHPuBLqGH5h07abU8DbP1SnoMcqXgctPHZfs/DeBRury1FMCgYEAzdiI" +
-                "YgBnnrQIwzCwF03PUM9qgj47H0tm5UvXdq5kxPpmvZs4tJ504hPDAvi1hAWMga8b" +
-                "YewDBfPKr2tEDN8A2fFfj/xTAz+sIt+8h64hOy2KAaS0HoyvbCO1Qp0JAmXbEPPh" +
-                "3Zymkvj2/WBifajKn0Xye0pOH1pcd5II1sv4zzcCgYB0fYIv/QZ8OVGfGa3uqTfx" +
-                "XroRzgVZU+Ob40vPR0BMYTfqqvK0Cvg9y7ffEKbCRQgtgxFBT8hCHAVolDcjBCAN" +
-                "xzkCjDtGhIIiwEb4vPqli4qlGi6Us8tmr07c0/rw3TUIvUWEr/TFx7+T70C6V7WH" +
-                "UEtYxgiUY5D19o42i98WPwKBgCBmA1lBbQ26kmJ+aEjSs12pt77WIqITURen7zq7" +
-                "yhqCuub+5lbvVcA7kgcGtDMaWHoU4H9yESu/qlgfzu8jrlOfPQZBlaM+Q06d3mOQ" +
-                "kaRpz33guYTRac7gc+gPJVreQzOQ3yztOf6J9v38TKQwi+uzq62iDVe79i/PqVp9" +
-                "ciTTAoGBANgZhFUgPFqyrAYp0DUFdAQZQs9l56VyvvaPi5SQER/3RPA2nx4hND00" +
-                "G+C1dHGKu8OKhmUHmOLAeAelm10spx2+BCZONrvLqMh8JB1sWG0k+3suOPuA2yio" +
-                "SkHXIpS4Kfn+yC3OQq7xAGuZFLghuX1lysWkjF4r5Ry+K493UxkS";
+    public static PrivateKey toPrivateKey(String str) {
+//        String str = "MIIEowIBAAKCAQEAtZ/gAtKucsdlB8KUi1ztyjYHmVaM964wGT3u/eyNDW4BUTst" +
+//                "QHBedjhfSR8NJP86UxdCkQ1M/Ap/1MVrAX2VNbpr8/al76K1/UaEvYJUCcIi9iZ7" +
+//                "XJkleRduh2zSGJ2ZUa+TOJcNAlZWeSaXxE45+NDnKzVASF0kFK7l9ZVz8II9Ph4X" +
+//                "1oZ2J+Ls4RMEuGZ1cWUdOn6eC7IC7bKqKJxAmaLVH57vNNKVRRWmdB9ByAQImRgk" +
+//                "ZT3lrSV2lRdUdz6uReDutBR0S3cvRf2AGb36gm4Qu7Y8gJnLzuhYhLB0/6W2g8am" +
+//                "Na5Skcfdemt1AwDK8VCFtBjYQMc0bV00VUK61QIDAQABAoIBADfbKi5UErhT4BtJ" +
+//                "2RsfAjZM9XtP5dyKIlqw9F39MMfvi9Iqi9kkdbiPz6YSOZ2mLI6/OYaYe5OLuxJ5" +
+//                "gFYeBBRY97g4o4GWHbf9xvbtLOEvZkcjQI8SvjaGYUSez+IoHa3EfFdMBQEyAjgS" +
+//                "CVyi3itKO73LC7D1jBIcU7Z6NwTA1EUUEEn5OXdms0Qjakb0o2xG38MgIZE2LB9b" +
+//                "d5qfDZIDh0R8NtvPMCOJAAJXJOtHbMXqnQG2txS+rIBjbgZB1DTLQse8+gcGFk+K" +
+//                "HSIlvdWRMcakRyUi04uv0DoXIX6dYo0cJod5n712yKitunj2kiFxjTSIORQjkmoP" +
+//                "kgYyLIUCgYEA4eCOnj/HO7xzxF7lsoo35ud6ZTT9fO4zPsoP2XxXnYwKml5W3kjp" +
+//                "SnJG3rsFQYHwR7TqUWZsKJmKURoAAmNKYqfpG+uYAxawjHlZ/yLb/Rurgdm/eYAa" +
+//                "YIAi/miBxHPuBLqGH5h07abU8DbP1SnoMcqXgctPHZfs/DeBRury1FMCgYEAzdiI" +
+//                "YgBnnrQIwzCwF03PUM9qgj47H0tm5UvXdq5kxPpmvZs4tJ504hPDAvi1hAWMga8b" +
+//                "YewDBfPKr2tEDN8A2fFfj/xTAz+sIt+8h64hOy2KAaS0HoyvbCO1Qp0JAmXbEPPh" +
+//                "3Zymkvj2/WBifajKn0Xye0pOH1pcd5II1sv4zzcCgYB0fYIv/QZ8OVGfGa3uqTfx" +
+//                "XroRzgVZU+Ob40vPR0BMYTfqqvK0Cvg9y7ffEKbCRQgtgxFBT8hCHAVolDcjBCAN" +
+//                "xzkCjDtGhIIiwEb4vPqli4qlGi6Us8tmr07c0/rw3TUIvUWEr/TFx7+T70C6V7WH" +
+//                "UEtYxgiUY5D19o42i98WPwKBgCBmA1lBbQ26kmJ+aEjSs12pt77WIqITURen7zq7" +
+//                "yhqCuub+5lbvVcA7kgcGtDMaWHoU4H9yESu/qlgfzu8jrlOfPQZBlaM+Q06d3mOQ" +
+//                "kaRpz33guYTRac7gc+gPJVreQzOQ3yztOf6J9v38TKQwi+uzq62iDVe79i/PqVp9" +
+//                "ciTTAoGBANgZhFUgPFqyrAYp0DUFdAQZQs9l56VyvvaPi5SQER/3RPA2nx4hND00" +
+//                "G+C1dHGKu8OKhmUHmOLAeAelm10spx2+BCZONrvLqMh8JB1sWG0k+3suOPuA2yio" +
+//                "SkHXIpS4Kfn+yC3OQq7xAGuZFLghuX1lysWkjF4r5Ry+K493UxkS";
         //FileInputStream fis = new FileInputStream("id_rsa");
+        str = str.replaceAll("\n","");
         byte[] decodeKeyinfo = Base64.getDecoder().decode(str);
 
         //byte[]  = (new BASE64Decoder()).decodeBuffer(keyinfo);
@@ -121,19 +122,19 @@ public class KeyGenerator {
         return null;
     }
 
-    public static PrivateKey getPrivateKey(String fileName) throws Exception{
-        //openssl pkcs8 -topk8 -inform PEM -outform DER -in private_key.pem -out private_key.der -nocrypt
-        File file = new File(fileName);
-        FileInputStream fis = new FileInputStream(file);
-        DataInputStream dis = new DataInputStream(fis);
-        byte[] keyBytes = new byte[(int)file.length()];
-        dis.readFully(keyBytes);
-        dis.close();
-        PKCS8EncodedKeySpec keySpec = new PKCS8EncodedKeySpec(keyBytes);
-        KeyFactory keyFactory = KeyFactory.getInstance("RSA");
-        PrivateKey privateKey = keyFactory.generatePrivate(keySpec);
-        return privateKey;
-    }
+//    public static PrivateKey getPrivateKey(String fileName) throws Exception{
+//        //openssl pkcs8 -topk8 -inform PEM -outform DER -in private_key.pem -out private_key.der -nocrypt
+//        File file = new File(fileName);
+//        FileInputStream fis = new FileInputStream(file);
+//        DataInputStream dis = new DataInputStream(fis);
+//        byte[] keyBytes = new byte[(int)file.length()];
+//        dis.readFully(keyBytes);
+//        dis.close();
+//        PKCS8EncodedKeySpec keySpec = new PKCS8EncodedKeySpec(keyBytes);
+//        KeyFactory keyFactory = KeyFactory.getInstance("RSA");
+//        PrivateKey privateKey = keyFactory.generatePrivate(keySpec);
+//        return privateKey;
+//    }
     public static byte[] base642Byte(String base64Key) throws IOException{
         //BASE64Decoder decoder = new BASE64Decoder();
         return Base64.getDecoder().decode(base64Key);

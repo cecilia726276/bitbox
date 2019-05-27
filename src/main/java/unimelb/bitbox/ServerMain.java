@@ -1,6 +1,7 @@
 package unimelb.bitbox;
 
 import unimelb.bitbox.controller.ClientImpl;
+import unimelb.bitbox.controller.ClientMessageHandler;
 import unimelb.bitbox.controller.EventSelectorImpl;
 import unimelb.bitbox.message.ProtocolUtils;
 import unimelb.bitbox.service.*;
@@ -118,7 +119,7 @@ public class ServerMain implements FileSystemObserver {
             HostPort hostPost = new HostPort(peer);
             hostPorts.add(hostPost);
         }
-
+        ClientMessageHandler.clientMessageHandler = new ClientMessageHandler(peerSet, socketChannelSet);
         /**
          * send handshake request in initialization stage
          */

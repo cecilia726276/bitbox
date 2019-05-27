@@ -3,8 +3,10 @@ package unimelb.bitbox.message;
 import unimelb.bitbox.util.ConstUtil;
 import unimelb.bitbox.util.Document;
 
+import java.nio.channels.SocketChannel;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 /**
  * @Author SYZ
@@ -214,6 +216,18 @@ public class ProtocolUtils {
         totalReqBody.append("port", port);
         totalReqBody.append("status", status);
         totalReqBody.append("message", message);
+        return totalReqBody.toJson()+System.lineSeparator();
+    }
+
+    public static String getListPeerResponse(Map<SocketChannel, Document> peerSet) {
+        Document totalReqBody = new Document();
+        totalReqBody.append("command", ConstUtil.LIST_PEERS_RESPONSE);
+
+        List list = new ArrayList();
+        for (Map.Entry<SocketChannel, Document> peer : peerSet.entrySet()) {
+            list.add(peer.getValue());
+        }
+        totalReqBody.append("peers", (ArrayList<?>) list);
         return totalReqBody.toJson()+System.lineSeparator();
     }
 
