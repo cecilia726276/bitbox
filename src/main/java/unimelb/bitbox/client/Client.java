@@ -2,6 +2,7 @@ package unimelb.bitbox.client;
 
 import org.kohsuke.args4j.CmdLineException;
 import org.kohsuke.args4j.CmdLineParser;
+import unimelb.AES.AESUtil;
 import unimelb.RSA_test.RSAUtil.KeyGenerator;
 import unimelb.RSA_test.RSAUtil.RSAUtil;
 import unimelb.bitbox.message.ProtocolUtils;
@@ -12,8 +13,6 @@ import java.io.*;
 import java.net.Socket;
 import java.net.UnknownHostException;
 import java.security.PrivateKey;
-import java.security.PublicKey;
-import java.util.Base64;
 import java.util.List;
 import java.util.Scanner;
 
@@ -29,8 +28,8 @@ public class Client {
     static Socket clientSocket;
     static DataInputStream in;
     static DataOutputStream out;
-    String pubKey;
-    static PublicKey aesKey;
+    static String aesKey;
+//    static PublicKey aesKey;
     static PrivateKey privateKey;
 
     /**
@@ -88,9 +87,8 @@ public class Client {
                     byte[] base642Byte = RSAUtil.base642Byte(aes128);
                     //用私钥解密
                     byte[] privateDecrypt = RSAUtil.privateDecrypt(base642Byte, privateKey);
-                    pubKey = new String(privateDecrypt);
-                    byte[] byteKey = Base64.getDecoder().decode(pubKey);
-                    aesKey = KeyGenerator.decodePublicKey(byteKey);
+                    aesKey = new String(privateDecrypt);
+
                     return true;
 
                 } catch (Exception e) {
@@ -152,15 +150,7 @@ public class Client {
      * @param request
      */
     public void encryptSendMsg(String request){
-        byte[] encryptedBytes = new byte[0];
-        // 加密
-        try {
-            encryptedBytes = RSAUtil.publicEncrypt(request.getBytes(), aesKey);
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-        // 转base64
-        String encrypted = RSAUtil.byte2Base64(encryptedBytes);
+        String encrypted = AESUtil.encrypt(request, aesKey);
         String message = ProtocolUtils.getPayload(encrypted);
         try {
             out.writeUTF(message);
@@ -216,20 +206,10 @@ public class Client {
                     while (true){
                         if((response = in.readUTF()) != null){
                             System.out.println("Get List peers Response:" + response);
-
                             break;
                         }
                     }
-                    String payload = Document.parse(response).getString("payload");
-                    // 转base64
-                    byte[] payloadBytes = RSAUtil.base642Byte(payload);
-                    // 解密, 应该用aesKey进行解密，但是没有方法？
-                    String decrypted = "";
-                    // decrypted 为payload 里解密后的数据
-                    client.processMessage(decrypted);
-
-
-
+                    decryptMessage(client, response);
 
 
                 } else if (command == ConstUtil.CONNECT_PEER){
@@ -244,7 +224,8 @@ public class Client {
                             break;
                         }
                     }
-                    String payload = Document.parse(response).getString("payload");
+                    decryptMessage(client, response);
+
                 } else if (command == ConstUtil.DISCONNECT_PEER){
                     String request = ProtocolUtils.getClientRequest(ConstUtil.DISCONNECT_PEER_REQUEST, peerIp, peerPort);
                     // 加密发送
@@ -258,7 +239,7 @@ public class Client {
                             break;
                         }
                     }
-                    String payload = Document.parse(response).getString("payload");
+                    decryptMessage(client, response);
 
 
                 } else {
@@ -286,6 +267,12 @@ public class Client {
         }
     }
 
+    private static void decryptMessage(Client client, String response) {
+        String payload = Document.parse(response).getString("payload");
+        String decryptedResponse = AESUtil.desEncrypt(payload, aesKey);
+        System.out.println("Decrypted Response: " + decryptedResponse);
+        client.processMessage(decryptedResponse);
+    }
 
 
 }
