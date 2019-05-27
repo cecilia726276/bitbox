@@ -8,17 +8,21 @@ import java.util.concurrent.ConcurrentHashMap;
 
 public class AESKeyManager {
     public static Map<SocketChannel, String> AESMap = new ConcurrentHashMap<>();
-    public boolean generateAESKey(SocketChannel socketChannel) {
+    public String generateAESKey(SocketChannel socketChannel) {
         try{
+            if(AESMap.containsKey(socketChannel))
+                return AESMap.get(socketChannel);
             String key = AESUtil.generateKey();
             AESMap.put(socketChannel, key);
-            return true;
+            return key;
         }catch (Exception e){
             e.printStackTrace();
         }
         System.out.println("fail to generate AES key.");
-        return false;
+        return null;
     }
+
+
     public String AESdecrypt(SocketChannel socketChannel, String encryMsg) {
         String key = AESMap.get(socketChannel);
         if (key == null) {

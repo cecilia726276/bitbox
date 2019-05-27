@@ -121,19 +121,19 @@ public class KeyGenerator {
         return null;
     }
 
-    public static PrivateKey getPrivateKey(String fileName) throws Exception{
-        //openssl pkcs8 -topk8 -inform PEM -outform DER -in private_key.pem -out private_key.der -nocrypt
-        File file = new File(fileName);
-        FileInputStream fis = new FileInputStream(file);
-        DataInputStream dis = new DataInputStream(fis);
-        byte[] keyBytes = new byte[(int)file.length()];
-        dis.readFully(keyBytes);
-        dis.close();
-        PKCS8EncodedKeySpec keySpec = new PKCS8EncodedKeySpec(keyBytes);
-        KeyFactory keyFactory = KeyFactory.getInstance("RSA");
-        PrivateKey privateKey = keyFactory.generatePrivate(keySpec);
-        return privateKey;
-    }
+//    public static PrivateKey getPrivateKey(String fileName) throws Exception{
+//        //openssl pkcs8 -topk8 -inform PEM -outform DER -in private_key.pem -out private_key.der -nocrypt
+//        File file = new File(fileName);
+//        FileInputStream fis = new FileInputStream(file);
+//        DataInputStream dis = new DataInputStream(fis);
+//        byte[] keyBytes = new byte[(int)file.length()];
+//        dis.readFully(keyBytes);
+//        dis.close();
+//        PKCS8EncodedKeySpec keySpec = new PKCS8EncodedKeySpec(keyBytes);
+//        KeyFactory keyFactory = KeyFactory.getInstance("RSA");
+//        PrivateKey privateKey = keyFactory.generatePrivate(keySpec);
+//        return privateKey;
+//    }
     public static byte[] base642Byte(String base64Key) throws IOException{
         //BASE64Decoder decoder = new BASE64Decoder();
         return Base64.getDecoder().decode(base64Key);
