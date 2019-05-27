@@ -22,6 +22,14 @@ public class TestNioUdp {
             udpSelector.startServer(ConstUtil.PORT);
         }
     }
+    public static class testRun2 implements Runnable {
+
+        @Override
+        public void run() {
+            EventSelector eventSelector = EventSelectorImpl.getInstance();
+            eventSelector.controllerRunning();
+        }
+    }
 
     public static void main(String[] args) {
         Thread thread = new Thread(new TestNioUdp.testRun());
@@ -37,6 +45,8 @@ public class TestNioUdp {
         } catch (NoSuchAlgorithmException e) {
             e.printStackTrace();
         }
+        Thread thread2 = new Thread(new TestNioUdp.testRun2());
+        thread2.start();
 //        try {
 //            Thread.sleep(10000);
 //        } catch (InterruptedException e) {
