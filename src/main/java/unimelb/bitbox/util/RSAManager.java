@@ -7,7 +7,7 @@ import java.security.PublicKey;
 import java.util.Base64;
 public class RSAManager {
 
-    public String RSAEncrypt(String pubStr, String rawMsg){ //return RSA encryted AES secret key
+    public static String RSAEncrypt(String pubStr, String rawMsg){ //return RSA encryted AES secret key
         byte[] byteKey = Base64.getDecoder().decode(pubStr);
         try{
             PublicKey publicKey = KeyGenerator.decodePublicKey(byteKey);
