@@ -32,7 +32,6 @@ public class SocketProcessUtil {
             e.printStackTrace();
             return null;
         }
-
     }
     // TODO: 这个函数直接把channel关掉是不是不太好啊
     public static void sendRejectResponse(SocketChannel socketChannel, String content, Set socketChannelSet, Map peerSet) {

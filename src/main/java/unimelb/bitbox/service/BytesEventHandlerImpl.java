@@ -45,11 +45,11 @@ public class BytesEventHandlerImpl implements BytesEventHandler {
             // TODO： 判断状态机是否发过 modify, create, byte response
             // TODO:  byte response 需要通过状态机里存的position配合判断【要不这里就不判断position了，万一有重传呢！】
             EventDetail eventDetail = eventDetails.get(pathName);
-            System.out.println(eventDetail.getPosition()+" "+eventDetail.getSentLength()+" "+eventDetail.getCommand());
+//            System.out.println(eventDetail.getPosition()+" "+eventDetail.getSentLength()+" "+eventDetail.getCommand());
             boolean getCreateModifyByteResponseBefore
                     = eventDetail != null &&
-                    ((eventDetail.getCommand().equals(ConstUtil.FILE_BYTES_RESPONSE)
-                    && eventDetail.getPosition() + eventDetail.getSentLength() == position)
+                    (eventDetail.getCommand().equals(ConstUtil.FILE_BYTES_RESPONSE)
+//                    && eventDetail.getPosition() + eventDetail.getSentLength() == position)
                     || eventDetail.getCommand().equals(ConstUtil.FILE_MODIFY_REQUEST)
                     || eventDetail.getCommand().equals(ConstUtil.FILE_CREATE_REQUEST));
 
@@ -115,8 +115,8 @@ public class BytesEventHandlerImpl implements BytesEventHandler {
             EventDetail eventDetail = eventDetails.get(pathName);
 
             boolean sendRequestBefore = eventDetail != null
-                    && eventDetail.getCommand().equals(ConstUtil.FILE_BYTES_REQUEST)
-                    && eventDetail.getPosition() == pos && eventDetail.getSentLength() == len;
+                    && eventDetail.getCommand().equals(ConstUtil.FILE_BYTES_REQUEST);
+//                    && eventDetail.getPosition() == pos && eventDetail.getSentLength() == len;
 
             if (sendRequestBefore) {
                 boolean status = document.getBoolean("status");
@@ -131,7 +131,7 @@ public class BytesEventHandlerImpl implements BytesEventHandler {
                                  * The write operation of this file has been completed. No further action is required.
                                  */
                                 // TODO:  更改状态：pathName 为 aaa 的文件已经收到了所有文件了
-                                eventDetails.remove(eventDetail);
+                                eventDetails.remove(pathName);
                             } else {
                                 /**
                                  * when the size of the rest part of the modified file is no larger than than the blocksize

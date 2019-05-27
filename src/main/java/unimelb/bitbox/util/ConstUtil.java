@@ -50,7 +50,7 @@ public class ConstUtil {
         String[] keyParts;
         for (String s:pbKeys) {
             keyParts = s.split( " ");
-            PUBLIC_KEYS.put(keyParts[2], s);
+            PUBLIC_KEYS.put(keyParts[2], keyParts[1]);
         }
     }
 }

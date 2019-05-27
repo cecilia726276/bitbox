@@ -1,7 +1,10 @@
 package unimelb.bitbox.udpcontroller;
 
 import unimelb.bitbox.ServerMain;
+import unimelb.bitbox.controller.EventSelector;
+import unimelb.bitbox.controller.EventSelectorImpl;
 import unimelb.bitbox.util.ConstUtil;
+import unimelb.bitbox.util.SyncRunner;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
@@ -23,9 +26,13 @@ public class TestNioUdp2 {
         Thread thread = new Thread(new testRun());
         thread.start();
         UdpSelector udpSelector = UdpSelector.getInstance();
+        EventSelector eventSelector = EventSelectorImpl.getInstance();
+
         try {
             ServerMain serverMain2 = new ServerMain();
             udpSelector.setServerMain(serverMain2);
+            eventSelector.getFixedThreadPool().execute(new SyncRunner(serverMain2));
+
         } catch (IOException e) {
             e.printStackTrace();
         } catch (NoSuchAlgorithmException e) {

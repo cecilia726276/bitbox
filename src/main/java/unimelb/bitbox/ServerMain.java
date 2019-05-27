@@ -8,6 +8,7 @@ import unimelb.bitbox.udpcontroller.UdpSelector;
 import unimelb.bitbox.util.*;
 import unimelb.bitbox.util.FileSystemManager.FileSystemEvent;
 
+import javax.print.Doc;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
@@ -184,8 +185,17 @@ public class ServerMain implements FileSystemObserver {
     }
 
     private void processEachMessage(SocketChannel socketChannel, String string){
-
-        Document document = Document.parse(string);
+        Document document = null;
+        try {
+            document = Document.parse(string);
+        }catch (Exception e) {
+            log.info("doc err");
+            return;
+        }
+        if (document == null) {
+            log.info("doc err");
+            return;
+        }
         log.info("input String: " + string);
         String command = document.getString("command");
         if(command == null) {
@@ -467,6 +477,11 @@ public class ServerMain implements FileSystemObserver {
             Document fd = null;
             if (f != null) {
                 fd = f.toDoc();
+            }
+            if ((eventDetail = events.get(fileSystemEvent.pathName)) != null
+                && !eventDetail.isEnd()) {
+                System.out.println("[PROCESSING]"+fileSystemEvent.pathName+" "+eventDetail.getCommand());
+                continue;
             }
             eventDetail = new EventDetail(fileSystemEvent.pathName,fd,
                     generatedRequest, command, System.currentTimeMillis(), false, 0);

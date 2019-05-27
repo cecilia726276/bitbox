@@ -33,7 +33,7 @@ public class UdpSelector {
     }
     private UdpSelector(){
         try {
-            byteBuffer = ByteBuffer.allocate(102400);
+            byteBuffer = ByteBuffer.allocate(1024000);
             selector = Selector.open();
             datagramChannel = DatagramChannel.open();
             connectionControl = Collections.synchronizedSet(new HashSet<>());
@@ -91,12 +91,13 @@ public class UdpSelector {
                             byteBuffer.clear();
                             SocketAddress socketAddress = channel.receive(byteBuffer);
                             byteBuffer.flip();
+                            String content = "";
                             if (socketAddress != null) {
+                                content = Coder.INSTANCE.getDecoder().decode(byteBuffer).toString();
                                 System.out.println("Received from:" + socketAddress.toString());
-                                System.out.println("Said:"+ Coder.INSTANCE.getDecoder().decode(byteBuffer).toString());
+                                System.out.println("Said:"+ content);
                             }
                             byteBuffer.clear();
-                            String content = Coder.INSTANCE.getDecoder().decode(byteBuffer).toString();
                             //fake socket channel ohhhh
                             FakeSocketChannel fakeSocketChannel = new FakeSocketChannel(socketAddress);
                             if (serverMain.checkPeer(fakeSocketChannel)) {
