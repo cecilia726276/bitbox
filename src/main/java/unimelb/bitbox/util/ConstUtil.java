@@ -1,6 +1,5 @@
 package unimelb.bitbox.util;
 
-import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -21,6 +20,17 @@ public class ConstUtil {
     public static final String DIRECTORY_CREATE_RESPONSE = "DIRECTORY_CREATE_RESPONSE";
     public static final String DIRECTORY_DELETE_REQUEST = "DIRECTORY_DELETE_REQUEST";
     public static final String DIRECTORY_DELETE_RESPONSE = "DIRECTORY_DELETE_RESPONSE";
+    public static final String LIST_PEERS_REQUEST = "LIST_PEERS_REQUEST";
+    public static final String LIST_PEERS_RESPONSE = "LIST_PEERS_RESPONSE";
+    public static final String CONNECT_PEER_REQUEST = "CONNECT_PEER_REQUEST";
+    public static final String CONNECT_PEER_RESPONSE = "CONNECT_PEER_RESPONSE";
+    public static final String DISCONNECT_PEER_REQUEST = "DISCONNECT_PEER_REQUEST";
+    public static final String DISCONNECT_PEER_RESPONSE = "DISCONNECT_PEER_RESPONSE";
+    public static final String LIST_PEERS = "list_peers";
+    public static final String CONNECT_PEER = "connect_peer";
+    public static final String DISCONNECT_PEER = "disconnect_peer";
+    public static final String AUTH_REQUEST = "AUTH_REQUEST";
+    public static final String AUTH_RESPONSE = "AUTH_RESPONSE";
     public static final String HANDSHAKE_TOKEN = "*HANDSHAKE_TOKEN*";
     public static final int MAXIMUM_INCOMMING_CONNECTIONS = Integer.parseInt(Configuration.getConfigurationValue("maximumIncommingConnections"));
     public static final String IP = Configuration.getConfigurationValue("advertisedName");

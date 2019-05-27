@@ -1,4 +1,4 @@
-package unimelb.bitbox.packageAPI;
+package unimelb.bitbox.draft.packageAPI;
 
 import org.json.simple.JSONObject;
 import unimelb.bitbox.util.Configuration;

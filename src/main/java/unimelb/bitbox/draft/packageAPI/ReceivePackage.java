@@ -1,6 +1,4 @@
-package unimelb.bitbox.packageAPI;
-
-import unimelb.bitbox.util.Document;
+package unimelb.bitbox.draft.packageAPI;
 
 public interface ReceivePackage {
     public boolean receiveReq(String input);
