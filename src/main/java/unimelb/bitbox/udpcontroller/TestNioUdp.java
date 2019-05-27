@@ -3,13 +3,9 @@ package unimelb.bitbox.udpcontroller;
 import unimelb.bitbox.ServerMain;
 import unimelb.bitbox.controller.EventSelector;
 import unimelb.bitbox.controller.EventSelectorImpl;
-import unimelb.bitbox.util.Configuration;
 import unimelb.bitbox.util.ConstUtil;
-import unimelb.bitbox.util.SyncRunner;
 
 import java.io.IOException;
-import java.net.InetSocketAddress;
-import java.net.SocketAddress;
 import java.security.NoSuchAlgorithmException;
 
 public class TestNioUdp {
@@ -39,7 +35,7 @@ public class TestNioUdp {
         try {
             ServerMain serverMain = new ServerMain();
             udpSelector.setServerMain(serverMain);
-            eventSelector.getFixedThreadPool().execute(new SyncRunner(serverMain));
+//            eventSelector.getFixedThreadPool().execute(new SyncRunner(serverMain));
         } catch (IOException e) {
             e.printStackTrace();
         } catch (NoSuchAlgorithmException e) {

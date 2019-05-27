@@ -9,7 +9,6 @@ import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.ServerSocket;
 import java.nio.channels.*;
-import java.sql.Timestamp;
 import java.util.*;
 import java.util.concurrent.*;
 
@@ -209,7 +208,8 @@ public class EventSelectorImpl implements EventSelector {
                     handingMap.put(key, true);
                     EventHandler eventHandler = new EventHandler(key);
 //                    eventHandler.run();
-                    fixedThreadPool.execute(eventHandler);
+//                    fixedThreadPool.execute(eventHandler);
+                    eventHandler.run();
                     keyIterator.remove();
                 }
                 selectedKeys.clear();

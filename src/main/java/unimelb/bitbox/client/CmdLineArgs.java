@@ -19,6 +19,9 @@ public class CmdLineArgs {
 	@Option(required = false, name = "-p", aliases = {"--peer"}, usage = "Peer" )
 	private String peer;
 
+	@Option(required = true, name = "-i", aliases = {"--identity"}, usage = "Identity")
+	private String identity;
+
 //	@Option(required = true, name = "-h", aliases = {"--host"}, usage = "Hostname")
 //	private String host;
 //
@@ -30,6 +33,8 @@ public class CmdLineArgs {
 	public String getServer(){ return server; }
 
 	public String getPeer(){ return peer; }
+
+	public String getIdentity(){ return identity; }
 
 //	public String getHost() {
 //		return host;

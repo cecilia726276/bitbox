@@ -2,6 +2,7 @@ package unimelb.bitbox.controller;
 
 import unimelb.bitbox.ServerMain;
 import unimelb.bitbox.message.ProtocolUtils;
+import unimelb.bitbox.udpcontroller.FakeSocketChannel;
 import unimelb.bitbox.util.*;
 
 import java.io.IOException;
@@ -60,7 +61,7 @@ public class ClientMessageHandler {
             command = document.getString("command");
         }
 
-        if(command == null) {
+        if(command != null) {
             switch (command) {
                 case ConstUtil.LIST_PEERS_REQUEST: {
                     String content = ProtocolUtils.getListPeerResponse(peerSet);
@@ -70,7 +71,7 @@ public class ClientMessageHandler {
                 }
                 case ConstUtil.CONNECT_PEER_REQUEST: {
                     String host = newdocument.getString("host");
-                    Integer port = Integer.parseInt(newdocument.getString("port"));
+                    int port = (int)(newdocument.getLong("port"));
                     client.sendRequest(ProtocolUtils.getHandShakeRequest(new HostPort(host, port).toDoc()), host, port);
                     String contents = ProtocolUtils.getClientResponse(
                             ConstUtil.CONNECT_PEER_RESPONSE, host, port, true, "connected to Peer");
@@ -81,11 +82,22 @@ public class ClientMessageHandler {
                 }
                 case ConstUtil.DISCONNECT_PEER_REQUEST: {
                     String host = newdocument.getString("host");
-                    Integer port = Integer.parseInt(newdocument.getString("port"));
+                    int port = (int)newdocument.getLong("port");
                     for (SocketChannel sc : sockchannelSet) {
                         try {
-                            if (((InetSocketAddress)sc.getRemoteAddress()).getHostName().equals(host)
-                            && ((InetSocketAddress)sc.getRemoteAddress()).getPort() == port) {
+                            String hosttmp = "";
+                            int porttmp;
+                            if (ConstUtil.MODE.equals(ConstUtil.TCP_MODE)) {
+                                hosttmp = ((InetSocketAddress) sc.getRemoteAddress()).getAddress().toString();
+                                porttmp = ((InetSocketAddress) sc.getRemoteAddress()).getPort();
+                            } else {
+                                hosttmp = ((InetSocketAddress)((FakeSocketChannel)sc).getSocketAddress()).getHostName();
+                                porttmp = ((InetSocketAddress)((FakeSocketChannel)sc).getSocketAddress()).getPort();
+
+                            }
+                            System.out.println("host:"+hosttmp+";port:"+porttmp);
+                            if (hosttmp.equals(host)
+                            && porttmp == port) {
                                 peerSet.remove(sc);
                                 sockchannelSet.remove(sc);
                                 eventSelector.removeConnection(sc);
@@ -116,7 +128,10 @@ public class ClientMessageHandler {
                         // TODO:RSA 加密
                         // TODO:AEK 生成
                         String aesKey = AESKeyManager.generateAESKey(socketChannel);
+                        System.out.println("AESKEY_origin: "+aesKey);
+
                         aesKey = RSAManager.RSAEncrypt(ConstUtil.PUBLIC_KEYS.get(identity), aesKey);
+                        System.out.println("AESKEY: "+aesKey);
                         client.replyRequest(socketChannel,
                                 ProtocolUtils.getAuthSuccessResponse(aesKey, "public key found"), false);
 

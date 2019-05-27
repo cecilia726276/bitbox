@@ -25,9 +25,12 @@ import java.util.Scanner;
 
 // Reference: Tutorial 8: CmdLineArgsDemo
 public class Client {
-    String identity = "yizhoushen@Yizhous-MacBook-Pro.local";
+    //String identity = "yizhoushen@Yizhous-MacBook-Pro.local";
+    // "Windows10@Bowen-Xu"
+    static String identity;
     static Socket clientSocket;
-    static DataOutputStream out;
+    static BufferedWriter out;
+    //static DataOutputStream out;
     static BufferedReader in;
 
     static String aesKey;
@@ -46,11 +49,12 @@ public class Client {
             clientSocket = new Socket(ip, port);
             System.out.println("ServerConnection Established");
             in = new BufferedReader(new InputStreamReader(clientSocket.getInputStream(), "UTF8"));
-            out = new DataOutputStream(clientSocket.getOutputStream());
+            out = new BufferedWriter(new OutputStreamWriter(clientSocket.getOutputStream(), "UTF8"));
+            //out = new DataOutputStream(clientSocket.getOutputStream());
             System.out.println("Verify identity:" + identity);
             String idenMesg = ProtocolUtils.getAuthRequest(identity);
-
-            out.writeUTF(idenMesg);
+            System.out.println("send message:"+ idenMesg);
+            out.write(idenMesg);
             out.flush();
             System.out.println("Identification sent, wait for response.");
 
@@ -81,17 +85,19 @@ public class Client {
     public Boolean extractPublicKey(String string){
         Document document = Document.parse(string);
         String command = document.getString("command");
-        if (command == ConstUtil.AUTH_RESPONSE){
+        if (command.equals(ConstUtil.AUTH_RESPONSE)){
             Boolean status = document.getBoolean("status");
             if (status) {
                 String aes128 = document.getString("AES128");
-
+                System.out.println(aes128);
                 try {
                     byte[] base642Byte = RSAUtil.base642Byte(aes128);
+                    System.out.println(base642Byte);
                     //用私钥解密
                     byte[] privateDecrypt = RSAUtil.privateDecrypt(base642Byte, privateKey);
+                    System.out.println(privateDecrypt);
                     aesKey = new String(privateDecrypt);
-
+                    System.out.println("get aesKey:" + aesKey);
                     return true;
 
                 } catch (Exception e) {
@@ -130,11 +136,7 @@ public class Client {
                 break;
             }
             case (ConstUtil.CONNECT_PEER_RESPONSE) :{
-                String host = document.getString("host");
-                String port = document.getString("port");
-                Boolean status = document.getBoolean("status");
-                String message = document.getString("message");
-                System.out.println("command:"+ command + "\n" + "host: " + host + "\n" + "port: " + port + "\n" + "status: "+status + "message: " + message);
+                System.out.println(document.toString());
                 break;
             }
             case ConstUtil.DISCONNECT_PEER_RESPONSE:{
@@ -156,7 +158,7 @@ public class Client {
         String encrypted = AESUtil.encrypt(request, aesKey);
         String message = ProtocolUtils.getPayload(encrypted);
         try {
-            out.writeUTF(message);
+            out.write(message);
             out.flush();
         } catch (IOException e) {
             e.printStackTrace();
@@ -165,7 +167,7 @@ public class Client {
 
     public static void main(String[] args) {
         Client client = new Client();
-        try (InputStream inputStream = new FileInputStream("bitboxclient_rsa")) {
+        try (InputStream inputStream = new FileInputStream("old_bitboxclient_rsa")) {
             Scanner s = new Scanner(inputStream).useDelimiter("\\A");
             String priKey = s.hasNext() ? s.next() : "";
 
@@ -191,29 +193,29 @@ public class Client {
             //command line arguments
             String command = argsBean.getCommand();
             String server = argsBean.getServer();
+            identity = argsBean.getIdentity();
             String[] hostPort = server.split(":");
             String ip = hostPort[0];
             int port = Integer.parseInt(hostPort[1]);
             System.out.println("Finish configuration.");
             Boolean status = client.startConnection(ip, port);
+            System.out.println("status outcome: "+ status);
 
             if (status){
-                if(command == ConstUtil.LIST_PEERS){
-                    System.out.println("list_peers command");
+                if(command.equals(ConstUtil.LIST_PEERS)){
+                    System.out.println("list_peer command");
                     String request = ProtocolUtils.getListPeersRequest();
                     client.encryptSendMsg(request);
-                    System.out.println("Send list peers request");
                     String response;
                     while (true){
                         if((response = in.readLine()) != null){
-                            System.out.println("Get List peers Response:" + response);
                             break;
                         }
                     }
                     decryptMessage(client, response);
 
 
-                } else if (command == ConstUtil.CONNECT_PEER){
+                } else if (command.equals(ConstUtil.CONNECT_PEER)){
                     System.out.println("connect_peer command");
                     String peer = argsBean.getPeer();
                     String[] peerHostPort = peer.split(":");
@@ -233,7 +235,7 @@ public class Client {
                     }
                     decryptMessage(client, response);
 
-                } else if (command == ConstUtil.DISCONNECT_PEER){
+                } else if (command.equals(ConstUtil.DISCONNECT_PEER)){
                     System.out.println("disconnect_peer command");
                     String peer = argsBean.getPeer();
                     String[] peerHostPort = peer.split(":");

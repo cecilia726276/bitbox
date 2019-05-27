@@ -7,13 +7,10 @@ import unimelb.bitbox.util.ConstUtil;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
-import java.nio.ByteBuffer;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.nio.channels.SocketChannel;
-import java.sql.Timestamp;
 import java.util.Date;
-import java.util.Map;
 
 public class ClientImpl implements Client {
     private EventSelector eventSelector;
@@ -61,7 +58,8 @@ public class ClientImpl implements Client {
     @Override
     public boolean replyRequest(SocketChannel socketChannel, String content, boolean isFinal) {
         System.out.println("send2");
-        if (ConstUtil.MODE.equals(ConstUtil.TCP_MODE)) {
+
+        if (EventSelectorImpl.clientSockets.contains(socketChannel) || ConstUtil.MODE.equals(ConstUtil.TCP_MODE)) {
             return CommonOperation.registerWrite(socketChannel, content, isFinal, eventSelector);
         } else if (ConstUtil.MODE.equals(ConstUtil.UDP_MODE)) {
             UdpMessage udpMessage = new UdpMessage(((FakeSocketChannel)socketChannel).getSocketAddress(), content);
@@ -79,7 +77,7 @@ public class ClientImpl implements Client {
     @Override
     public boolean closeSocket(SocketChannel socketChannel) {
         System.out.println("closeSocket has been used");
-        if (ConstUtil.MODE.equals(ConstUtil.TCP_MODE)) {
+        if (EventSelectorImpl.clientSockets.contains(socketChannel) || ConstUtil.MODE.equals(ConstUtil.TCP_MODE)) {
             eventSelector.getServerMain().deletePeer(socketChannel);
             if (eventSelector.removeConnection(socketChannel)) {
                 return true;
