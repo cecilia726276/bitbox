@@ -17,6 +17,7 @@ import java.util.List;
 import java.util.Scanner;
 
 
+
 /**
  * @Author SYZ
  * @create 2019-05-22 20:10
@@ -26,8 +27,9 @@ import java.util.Scanner;
 public class Client {
     String identity = "yizhoushen@Yizhous-MacBook-Pro.local";
     static Socket clientSocket;
-    static DataInputStream in;
     static DataOutputStream out;
+    static BufferedReader in;
+
     static String aesKey;
 //    static PublicKey aesKey;
     static PrivateKey privateKey;
@@ -43,17 +45,18 @@ public class Client {
         try {
             clientSocket = new Socket(ip, port);
             System.out.println("ServerConnection Established");
-            in = new DataInputStream(clientSocket.getInputStream());
+            in = new BufferedReader(new InputStreamReader(clientSocket.getInputStream(), "UTF8"));
             out = new DataOutputStream(clientSocket.getOutputStream());
             System.out.println("Verify identity:" + identity);
             String idenMesg = ProtocolUtils.getAuthRequest(identity);
+
             out.writeUTF(idenMesg);
             out.flush();
             System.out.println("Identification sent, wait for response.");
 
             while (true){
                 String response;
-                if((response = in.readUTF()) != null){
+                if((response = in.readLine()) != null){
                     System.out.println("Get Response:" + response);
                     Boolean outcome = extractPublicKey(response);
                     return outcome;
@@ -154,6 +157,7 @@ public class Client {
         String message = ProtocolUtils.getPayload(encrypted);
         try {
             out.writeUTF(message);
+            out.flush();
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -190,21 +194,18 @@ public class Client {
             String[] hostPort = server.split(":");
             String ip = hostPort[0];
             int port = Integer.parseInt(hostPort[1]);
-            String peer = argsBean.getPeer();
-            String[] peerHostPort = peer.split(":");
-            String peerIp = peerHostPort[0];
-            int peerPort = Integer.parseInt(peerHostPort[1]);
-
+            System.out.println("Finish configuration.");
             Boolean status = client.startConnection(ip, port);
 
             if (status){
                 if(command == ConstUtil.LIST_PEERS){
+                    System.out.println("list_peers command");
                     String request = ProtocolUtils.getListPeersRequest();
                     client.encryptSendMsg(request);
                     System.out.println("Send list peers request");
                     String response;
                     while (true){
-                        if((response = in.readUTF()) != null){
+                        if((response = in.readLine()) != null){
                             System.out.println("Get List peers Response:" + response);
                             break;
                         }
@@ -213,12 +214,18 @@ public class Client {
 
 
                 } else if (command == ConstUtil.CONNECT_PEER){
+                    System.out.println("connect_peer command");
+                    String peer = argsBean.getPeer();
+                    String[] peerHostPort = peer.split(":");
+                    String peerIp = peerHostPort[0];
+                    int peerPort = Integer.parseInt(peerHostPort[1]);
+
                     String request = ProtocolUtils.getClientRequest(ConstUtil.CONNECT_PEER_REQUEST, peerIp, peerPort);
                     client.encryptSendMsg(request);
                     System.out.println("Connect peers request Sent");
                     String response;
                     while (true){
-                        if((response = in.readUTF()) != null){
+                        if((response = in.readLine()) != null){
                             System.out.println("Get Connect Peer Response:" + response);
 
                             break;
@@ -227,13 +234,19 @@ public class Client {
                     decryptMessage(client, response);
 
                 } else if (command == ConstUtil.DISCONNECT_PEER){
+                    System.out.println("disconnect_peer command");
+                    String peer = argsBean.getPeer();
+                    String[] peerHostPort = peer.split(":");
+                    int peerPort = Integer.parseInt(peerHostPort[1]);
+                    String peerIp = peerHostPort[0];
+
                     String request = ProtocolUtils.getClientRequest(ConstUtil.DISCONNECT_PEER_REQUEST, peerIp, peerPort);
                     // 加密发送
                     client.encryptSendMsg(request);
                     System.out.println("Disconnect peer request Sent");
                     String response;
                     while (true){
-                        if((response = in.readUTF()) != null){
+                        if((response = in.readLine()) != null){
                             System.out.println("Get Disconnect Peer Response:" + response);
 
                             break;
