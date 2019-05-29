@@ -47,11 +47,17 @@ public class BytesEventHandlerImpl implements BytesEventHandler {
             EventDetail eventDetail = eventDetails.get(pathName);
 //            System.out.println(eventDetail.getPosition()+" "+eventDetail.getSentLength()+" "+eventDetail.getCommand());
             boolean getCreateModifyByteResponseBefore
-                    = eventDetail != null &&
-                    (eventDetail.getCommand().equals(ConstUtil.FILE_BYTES_RESPONSE)
-//                    && eventDetail.getPosition() + eventDetail.getSentLength() == position)
-                    || eventDetail.getCommand().equals(ConstUtil.FILE_MODIFY_REQUEST)
-                    || eventDetail.getCommand().equals(ConstUtil.FILE_CREATE_REQUEST));
+                    = eventDetail != null;
+            if(!getCreateModifyByteResponseBefore) {
+                eventDetail = new EventDetail();
+                eventDetails.put(pathName, eventDetail);
+                getCreateModifyByteResponseBefore = true;
+            }
+//                    &&
+//                    (eventDetail.getCommand().equals(ConstUtil.FILE_BYTES_RESPONSE)
+////                    && eventDetail.getPosition() + eventDetail.getSentLength() == position)
+//                    || eventDetail.getCommand().equals(ConstUtil.FILE_MODIFY_REQUEST)
+//                    || eventDetail.getCommand().equals(ConstUtil.FILE_CREATE_REQUEST));
 
             if (getCreateModifyByteResponseBefore){
                 Document fileDescriptor = (Document) document.get("fileDescriptor");

@@ -129,7 +129,7 @@ public class FileEventHandlerImpl implements FileEventHandler {
         if (!status && eventDetail != null) {
             events.remove(pathName);
         }else if (status && eventDetail != null && eventDetail.getCommand().equals(ConstUtil.FILE_CREATE_REQUEST)) {
-            eventDetail.setEnd(true);
+//            eventDetail.setEnd(true);
             eventDetail.setTimestamp(System.currentTimeMillis());
             SocketProcessUtil.processCDResponse(document, ConstUtil.FILE_CREATE_RESPONSE, socketChannel, socketChannelSet, peerSet);
         }

@@ -7,9 +7,7 @@ import unimelb.bitbox.controller.ClientImpl;
 import unimelb.bitbox.message.ProtocolUtils;
 import unimelb.bitbox.util.*;
 
-import javax.naming.Context;
 import java.nio.channels.SocketChannel;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -46,13 +44,13 @@ public class HandshakeEventHandlerImpl implements HandshakeEventHandler{
             /**
              * If the handshake has already been completed
              */
-            if (socketChannelSet.contains(socketChannel)) {
-                String content = ProtocolUtils.getInvalidProtocol("handshaking has already been completed");
-                SocketProcessUtil.sendRejectResponse(socketChannel, content, socketChannelSet, peerSet);
+//            if (socketChannelSet.contains(socketChannel)) {
+//                String content = ProtocolUtils.getInvalidProtocol("handshaking has already been completed");
+//                SocketProcessUtil.sendRejectResponse(socketChannel, content, socketChannelSet, peerSet);
                 /**
                  * Delete the corresponding host port in the peerSet, close the socket
                  */
-            }
+//            }
             /**
              * If the maximum incomming connections have been reached:
              */
@@ -61,7 +59,7 @@ public class HandshakeEventHandlerImpl implements HandshakeEventHandler{
 //                String content = ProtocolUtils.getConnectionRefusedRequest(list);
 //                client.replyRequest(socketChannel, content, true);
 //                log.info("send CONNECTION_REFUSED");
-            else {
+//            else {
                 /**
                  * If everything is fine, establish the connection and send back handshake response
                  */
@@ -69,12 +67,13 @@ public class HandshakeEventHandlerImpl implements HandshakeEventHandler{
                 client.replyRequest(socketChannel, content, false);
                 socketChannelSet.add(socketChannel);
                 peerSet.put(socketChannel, hostPort.toDoc());
-
-                // create new context to manage this socketchannel
-                ContextManager.eventContext.put(socketChannel, new ConcurrentHashMap<>(20));
+                if (ContextManager.eventContext.get(socketChannel) == null) {
+                    // create new context to manage this socketchannel
+                    ContextManager.eventContext.put(socketChannel, new ConcurrentHashMap<>(20));
+                }
 
                 log.info("send HANDSHAKE_RESPONSE");
-            }
+//            }
         } else {
             String content = ProtocolUtils.getInvalidProtocol("message must contain a command field as string");
             SocketProcessUtil.sendRejectResponse(socketChannel, content, socketChannelSet, peerSet);
@@ -115,7 +114,7 @@ public class HandshakeEventHandlerImpl implements HandshakeEventHandler{
                 log.info("establish Connection");
             } else {
                 String content = ProtocolUtils.getInvalidProtocol("Invalid handshake response.");
-                SocketProcessUtil.sendRejectResponse(socketChannel, content, socketChannelSet, peerSet);
+//                SocketProcessUtil.sendRejectResponse(socketChannel, content, socketChannelSet, peerSet);
             }
         } else {
             String content = ProtocolUtils.getInvalidProtocol("message must contain a command field as string");
@@ -139,7 +138,7 @@ public class HandshakeEventHandlerImpl implements HandshakeEventHandler{
 
         HostPort hostPort = SocketProcessUtil.getHostPort(socketChannel);
         boolean handshakeBefore = handshakeReqHistory.contains(socketChannel);
-        if (handshakeBefore) {
+//        if (handshakeBefore) {
             events.remove(ConstUtil.HANDSHAKE_TOKEN);
             ContextManager.eventContext.remove(socketChannel);
             List<Document> existingPeers = (List<Document>) document.get("peers");
@@ -154,7 +153,11 @@ public class HandshakeEventHandlerImpl implements HandshakeEventHandler{
             /**
              * record information which is used to timeout and retry
              */
-            ConcurrentHashMap<String, EventDetail> details = new ConcurrentHashMap<>(20);
+
+            Map<String, EventDetail> details = new ConcurrentHashMap<>(20);
+            if (ContextManager.eventContext.get(nsc) != null) {
+                details = ContextManager.eventContext.get(nsc);
+            }
             details.put(ConstUtil.HANDSHAKE_TOKEN,
                     new EventDetail(ConstUtil.HANDSHAKE_TOKEN, null, handshakeRequest,
                             ConstUtil.HANDSHAKE_REQUEST, System.currentTimeMillis(),false,0));
@@ -163,9 +166,9 @@ public class HandshakeEventHandlerImpl implements HandshakeEventHandler{
              * The peer that tried to connect should do a breadth first search of peers in the peers list, attempt to make a connection to one of them.
              */
 
-        } else {
-            String invalidResponse = ProtocolUtils.getInvalidProtocol("Not waiting for a handshake response from this peer");
-            SocketProcessUtil.sendRejectResponse(socketChannel,invalidResponse, socketChannelSet, peerSet);
-        }
+//        } else {
+//            String invalidResponse = ProtocolUtils.getInvalidProtocol("Not waiting for a handshake response from this peer");
+//            SocketProcessUtil.sendRejectResponse(socketChannel,invalidResponse, socketChannelSet, peerSet);
+//        }
     }
 }
