@@ -16,7 +16,7 @@ public class TestNioUdp {
         @Override
         public void run() {
             UdpSelector udpSelector = UdpSelector.getInstance();
-            udpSelector.startServer(ConstUtil.PORT);
+            udpSelector.startServer();
         }
     }
     public static class testRun2 implements Runnable {

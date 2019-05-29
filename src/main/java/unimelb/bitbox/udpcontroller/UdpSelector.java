@@ -64,11 +64,10 @@ public class UdpSelector {
         }
     }
 
-    public void startServer(int port) {
-        System.out.println("Port:"+port+" Server start.");
+    public void startServer() {
+        System.out.println("Port:"+ConstUtil.UDP_PORT+" Server start.");
         try {
-            System.out.println(port);
-            datagramChannel.bind(new InetSocketAddress(port));
+            datagramChannel.bind(new InetSocketAddress(ConstUtil.UDP_PORT));
             datagramChannel.configureBlocking(false);
             datagramChannel.register(selector, SelectionKey.OP_READ);
             int numberOfPrepared = 0;

@@ -113,6 +113,7 @@ public class HandshakeEventHandlerImpl implements HandshakeEventHandler{
 //                ContextManager.eventContext.put(socketChannel, new ConcurrentHashMap<>(20));
                 log.info("establish Connection");
             } else {
+                events.remove(ConstUtil.HANDSHAKE_TOKEN);
                 String content = ProtocolUtils.getInvalidProtocol("Invalid handshake response.");
 //                SocketProcessUtil.sendRejectResponse(socketChannel, content, socketChannelSet, peerSet);
             }
