@@ -29,6 +29,12 @@
       <version>1.60</version>
     </dependency>
 
+    <dependency>
+      <groupId>org.bouncycastle</groupId>
+      <artifactId>bcpkix-jdk14</artifactId>
+      <version>1.57</version>
+    </dependency>
+
     <!-- https://mvnrepository.com/artifact/com.google.guava/guava -->
     <dependency>
       <groupId>com.google.guava</groupId>

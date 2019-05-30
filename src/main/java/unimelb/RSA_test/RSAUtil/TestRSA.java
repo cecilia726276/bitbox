@@ -35,7 +35,7 @@ public class TestRSA {
             System.out.println("公钥加密并Base64编码的结果：" + byte2Base64);
 
             //PrivateKey privateKey = KeyGenerator.getPrivateKey("E:/unimelb_cs/distributed systems/project1/bitbox/src/main/java/unimelb/RSA_test/test2.der");
-            PrivateKey privateKey = KeyGenerator.toPrivateKey("abc");
+            PrivateKey privateKey = KeyGenerator.toPrivateKey();
             //加密后的内容Base64解码
             byte[] base642Byte = RSAUtil.base642Byte(byte2Base64);
             //用私钥解密

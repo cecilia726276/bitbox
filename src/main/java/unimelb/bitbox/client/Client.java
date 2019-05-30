@@ -173,7 +173,8 @@ public class Client {
 
             System.out.println(priKey);
             //privateKey = RSAUtil.string2PrivateKey(priKey);
-            privateKey = KeyGenerator.toPrivateKey(priKey);
+            //privateKey = KeyGenerator.toPrivateKey(priKey);
+            privateKey = KeyGenerator.toPrivateKey(); //privateKey FileName
         } catch (IOException e) {
             System.out.println("Could not read file ");
         } catch (Exception e) {
