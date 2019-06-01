@@ -20,7 +20,7 @@ public class UdpSelector {
     private DatagramChannel datagramChannel;
     private ByteBuffer byteBuffer;
     private ServerMain serverMain;
-    private Set<SocketAddress> connectionControl;
+    private Set<SocketChannel> connectionControl;
     public ServerMain getServerMain() {
         return serverMain;
     }
@@ -41,16 +41,18 @@ public class UdpSelector {
             e.printStackTrace();
         }
     }
-    public void addConnection(SocketAddress socketAddresss) {
+    public boolean addConnection(FakeSocketChannel fakeSocketChannel) {
+
         if (connectionControl.size() >= ConstUtil.MAXIMUM_INCOMMING_CONNECTIONS) {
-            serverMain.replyConnectionError(new FakeSocketChannel(socketAddresss));
-            return;
+            serverMain.replyConnectionError(fakeSocketChannel);
+            return false;
         } else {
-            connectionControl.add(socketAddresss);
+            connectionControl.add(fakeSocketChannel);
+            return true;
         }
     }
     public void removeConnection(SocketAddress socketAddress){
-        connectionControl.remove(socketAddress);
+        connectionControl.remove(new FakeSocketChannel(socketAddress));
     }
 
     public void registerWrite(UdpMessage udpMessage){
@@ -99,9 +101,7 @@ public class UdpSelector {
                             byteBuffer.clear();
                             //fake socket channel ohhhh
                             FakeSocketChannel fakeSocketChannel = new FakeSocketChannel(socketAddress);
-                            if (serverMain.checkPeer(fakeSocketChannel)) {
-                                addConnection(fakeSocketChannel.getSocketAddress());
-                            }
+
                             serverMain.processRequest(fakeSocketChannel, content);
                         }
 

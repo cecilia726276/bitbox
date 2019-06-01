@@ -51,7 +51,7 @@ public class FileEventHandlerImpl implements FileEventHandler {
         Map<String, EventDetail> eventdetails =  ContextManager.eventContext.get(socketChannel);
 
         //boolean isPeerOnTheList = checkOntheList(socketChannel,peerSet);
-        if (isPeerOnTheList || eventdetails != null)//&& !checkInReqStateMap(requestState1,hostPort) && !checkInReqStateMap(requestState2,hostPort) && !existPathNameList.contains(pathName))
+        if (isPeerOnTheList && eventdetails != null)//&& !checkInReqStateMap(requestState1,hostPort) && !checkInReqStateMap(requestState2,hostPort) && !existPathNameList.contains(pathName))
         {
             Document fileDescriptor = (Document) document.get("fileDescriptor");
             String md5 = fileDescriptor.getString("md5");
@@ -99,7 +99,8 @@ public class FileEventHandlerImpl implements FileEventHandler {
                         }
                     } catch (Exception e) {
                         String content = ProtocolUtils.getFileResponse(ConstUtil.FILE_CREATE_RESPONSE, fileDescriptor, pathName, false, "the loader is no longer available in this case");
-                        SocketProcessUtil.sendRejectResponse(socketChannel, content,socketChannelSet, peerSet);
+                        client.replyRequest(socketChannel, content, false);
+//                        SocketProcessUtil.sendRejectResponse(socketChannel, content,socketChannelSet, peerSet);
                         e.printStackTrace();
                     }
                 } else {
@@ -146,7 +147,7 @@ public class FileEventHandlerImpl implements FileEventHandler {
         boolean isPeerOnTheList = socketChannelSet.contains(socketChannel);
         //boolean isPeerOnTheList = checkOntheList(socketChannel,peerSet);
 
-        if (isPeerOnTheList || eventdetails != null)//&& !checkInReqStateMap(requestState1,hostPort) && !checkInReqStateMap(requestState2,hostPort) && !existPathNameList.contains(pathName))
+        if (isPeerOnTheList && eventdetails != null)//&& !checkInReqStateMap(requestState1,hostPort) && !checkInReqStateMap(requestState2,hostPort) && !existPathNameList.contains(pathName))
         {
 
             Document fileDescriptor = (Document) document.get("fileDescriptor");

@@ -63,13 +63,20 @@ public class HandshakeEventHandlerImpl implements HandshakeEventHandler{
                 /**
                  * If everything is fine, establish the connection and send back handshake response
                  */
-                String content = ProtocolUtils.getHandShakeResponse(new HostPort(ConstUtil.IP, ConstUtil.PORT).toDoc());
+                String content = "";
+                if (ConstUtil.MODE.equals(ConstUtil.UDP_MODE)) {
+                    content = ProtocolUtils.getHandShakeResponse(new HostPort(ConstUtil.IP, ConstUtil.UDP_PORT).toDoc());
+                } else {
+                    content = ProtocolUtils.getHandShakeResponse(new HostPort(ConstUtil.IP, ConstUtil.PORT).toDoc());
+                }
                 client.replyRequest(socketChannel, content, false);
                 socketChannelSet.add(socketChannel);
                 peerSet.put(socketChannel, hostPort.toDoc());
                 if (ContextManager.eventContext.get(socketChannel) == null) {
                     // create new context to manage this socketchannel
                     ContextManager.eventContext.put(socketChannel, new ConcurrentHashMap<>(20));
+                } else {
+                    ContextManager.eventContext.get(socketChannel).remove(ConstUtil.HANDSHAKE_TOKEN);
                 }
 
                 log.info("send HANDSHAKE_RESPONSE");
@@ -148,7 +155,14 @@ public class HandshakeEventHandlerImpl implements HandshakeEventHandler{
                 return;
             }
             HostPort firstPeers = new HostPort(existingPeers.get(0));
-            String handshakeRequest = ProtocolUtils.getHandShakeRequest(firstPeers.toDoc());
+            String handshakeRequest = "";
+            if (ConstUtil.MODE.equals(ConstUtil.UDP_MODE)) {
+                handshakeRequest = ProtocolUtils.getHandShakeRequest(new HostPort(Configuration.getConfigurationValue("advertisedName")
+                        , ConstUtil.UDP_PORT).toDoc());
+            } else {
+                handshakeRequest = ProtocolUtils.getHandShakeRequest(new HostPort(Configuration.getConfigurationValue("advertisedName")
+                        , ConstUtil.PORT).toDoc());
+            }
             log.info("send new request: "+ firstPeers.host + firstPeers.port);
             SocketChannel nsc = client.sendRequest(handshakeRequest, firstPeers.host, firstPeers.port);
             /**

@@ -88,12 +88,12 @@ public class EventSelectorImpl implements EventSelector {
 
     @Override
     public boolean removeConnection(SocketChannel socketChannel) {
-        try {
-            System.out.println("i am removed");
-            socketChannel.close();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+//        try {
+        System.out.println("i am removed");
+//            socketChannel.close();
+//        } catch (IOException e) {
+//            e.printStackTrace();
+//        }
         EventSelectorImpl.clientSockets.remove(socketChannel);
         connectionGroup.remove(socketChannel);
         return false;

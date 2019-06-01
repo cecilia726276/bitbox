@@ -3,6 +3,7 @@ package unimelb.bitbox;
 import unimelb.bitbox.controller.EventSelector;
 import unimelb.bitbox.controller.EventSelectorImpl;
 import unimelb.bitbox.udpcontroller.UdpSelector;
+import unimelb.bitbox.util.ConstUtil;
 import unimelb.bitbox.util.SyncRunner;
 
 import java.io.IOException;
@@ -10,7 +11,7 @@ import java.security.NoSuchAlgorithmException;
 
 public class Peer {
 
-    public static class testRun implements Runnable {
+    public static class Run implements Runnable {
 
         @Override
         public void run() {
@@ -18,7 +19,7 @@ public class Peer {
             udpSelector.startServer();
         }
     }
-    public static class testRun2 implements Runnable {
+    public static class Run2 implements Runnable {
 
         @Override
         public void run() {
@@ -28,8 +29,10 @@ public class Peer {
     }
 
     public static void main(String[] args) {
-        Thread thread = new Thread(new Peer.testRun());
-        thread.start();
+        if (ConstUtil.MODE.equals(ConstUtil.UDP_MODE)) {
+            Thread thread = new Thread(new Peer.Run());
+            thread.start();
+        }
         EventSelector eventSelector = EventSelectorImpl.getInstance();
         UdpSelector udpSelector = UdpSelector.getInstance();
         try {
@@ -41,7 +44,7 @@ public class Peer {
         } catch (NoSuchAlgorithmException e) {
             e.printStackTrace();
         }
-        Thread thread2 = new Thread(new Peer.testRun2());
+        Thread thread2 = new Thread(new Peer.Run2());
         thread2.start();
 //        try {
 //            Thread.sleep(10000);

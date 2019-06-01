@@ -5,6 +5,7 @@ import unimelb.bitbox.controller.ClientMessageHandler;
 import unimelb.bitbox.controller.EventSelectorImpl;
 import unimelb.bitbox.message.ProtocolUtils;
 import unimelb.bitbox.service.*;
+import unimelb.bitbox.udpcontroller.FakeSocketChannel;
 import unimelb.bitbox.udpcontroller.UdpSelector;
 import unimelb.bitbox.util.*;
 import unimelb.bitbox.util.FileSystemManager.FileSystemEvent;
@@ -124,7 +125,12 @@ public class ServerMain implements FileSystemObserver {
          * send handshake request in initialization stage
          */
         for (HostPort hostPort: hostPorts){
-            String handshakeRequest = ProtocolUtils.getHandShakeRequest(new HostPort(ip, port).toDoc());
+            String handshakeRequest = "";
+            if (ConstUtil.MODE.equals(ConstUtil.UDP_MODE)) {
+                handshakeRequest = ProtocolUtils.getHandShakeRequest(new HostPort(ip, ConstUtil.UDP_PORT).toDoc());
+            } else {
+                handshakeRequest = ProtocolUtils.getHandShakeRequest(new HostPort(ip, port).toDoc());
+            }
             SocketChannel socketChannel = client.sendRequest(handshakeRequest,hostPort.host,hostPort.port);
             if (socketChannel != null) {
                 ConcurrentHashMap<String, EventDetail> details = new ConcurrentHashMap<>(20);
@@ -206,10 +212,27 @@ public class ServerMain implements FileSystemObserver {
 //            log.info("send INVALID_PROTOCOL");
             return;
         }
+        if (ConstUtil.MODE.equals(ConstUtil.UDP_MODE)) {
+            if (!checkPeer(socketChannel)) {
+                if (command.equals(ConstUtil.HANDSHAKE_REQUEST)) {
+                    boolean connectresult = UdpSelector.getInstance().addConnection((FakeSocketChannel) socketChannel);
+                    if (!connectresult) {
+                            replyConnectionError(socketChannel);
+                            return;
+                    }
+                }
+            }
+        }
+
         switch (command) {
             case ConstUtil.INVALID_PROTOCOL: {
                 log.info(command + document.getString("message"));
                 deletePeer(socketChannel);
+                if (ConstUtil.MODE.equals(ConstUtil.TCP_MODE)) {
+                    EventSelectorImpl.getInstance().removeConnection(socketChannel);
+                } else {
+                    UdpSelector.getInstance().removeConnection(((FakeSocketChannel)socketChannel).getSocketAddress());
+                }
                 break;
             }
             case ConstUtil.CONNECTION_REFUSED: {

@@ -1,8 +1,11 @@
 package unimelb.bitbox.controller;
 
+import unimelb.bitbox.ContextManager;
+import unimelb.bitbox.EventDetail;
 import unimelb.bitbox.ServerMain;
 import unimelb.bitbox.message.ProtocolUtils;
 import unimelb.bitbox.udpcontroller.FakeSocketChannel;
+import unimelb.bitbox.udpcontroller.UdpSelector;
 import unimelb.bitbox.util.*;
 
 import java.io.IOException;
@@ -10,6 +13,7 @@ import java.net.InetSocketAddress;
 import java.nio.channels.SocketChannel;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Logger;
 
 public class ClientMessageHandler {
@@ -64,6 +68,7 @@ public class ClientMessageHandler {
         if(command != null) {
             switch (command) {
                 case ConstUtil.LIST_PEERS_REQUEST: {
+                    System.out.println(peerSet.size());
                     String content = ProtocolUtils.getListPeerResponse(peerSet);
                     String encrypted = AESKeyManager.AESencrypt(socketChannel, content);
                     client.replyRequest(socketChannel, ProtocolUtils.getPayload(encrypted), true);
@@ -72,35 +77,64 @@ public class ClientMessageHandler {
                 case ConstUtil.CONNECT_PEER_REQUEST: {
                     String host = newdocument.getString("host");
                     int port = (int)(newdocument.getLong("port"));
-                    client.sendRequest(ProtocolUtils.getHandShakeRequest(new HostPort(host, port).toDoc()), host, port);
-                    String contents = ProtocolUtils.getClientResponse(
-                            ConstUtil.CONNECT_PEER_RESPONSE, host, port, true, "connected to Peer");
-                    String encrypted = AESKeyManager.AESencrypt(socketChannel, contents);
-                    client.replyRequest(socketChannel, ProtocolUtils.getPayload(encrypted), true);
+                    String handshakeRequest = "";
+                    if (ConstUtil.MODE.equals(ConstUtil.UDP_MODE)) {
+                        handshakeRequest = ProtocolUtils.getHandShakeRequest(new HostPort(Configuration.getConfigurationValue("advertisedName")
+                                , ConstUtil.UDP_PORT).toDoc());
+                    } else {
+                        handshakeRequest = ProtocolUtils.getHandShakeRequest(new HostPort(Configuration.getConfigurationValue("advertisedName")
+                                , ConstUtil.PORT).toDoc());
+                    }
+                    Map<String, EventDetail> events = new ConcurrentHashMap<>();
+                    SocketChannel sc = client.sendRequest(handshakeRequest, host, port);
+                    if (sc == null) {
+                        String contents = ProtocolUtils.getClientResponse(
+                                ConstUtil.CONNECT_PEER_RESPONSE, host, port, false, "failed to connected to Peer");
+                        String encrypted = AESKeyManager.AESencrypt(socketChannel, contents);
+                        client.replyRequest(socketChannel, ProtocolUtils.getPayload(encrypted), true);
+                    } else {
+                        ContextManager.eventContext.put(sc, events);
+                        String contents = ProtocolUtils.getClientResponse(
+                                ConstUtil.CONNECT_PEER_RESPONSE, host, port, true, "connected to Peer");
+                        String encrypted = AESKeyManager.AESencrypt(socketChannel, contents);
+                        client.replyRequest(socketChannel, ProtocolUtils.getPayload(encrypted), true);
+                    }
 //                    public boolean removeConnection(SocketChannel socketChannel);
                     break;
                 }
                 case ConstUtil.DISCONNECT_PEER_REQUEST: {
                     String host = newdocument.getString("host");
                     int port = (int)newdocument.getLong("port");
+                    System.out.println("socket set size:"+sockchannelSet.size());
+                    System.out.println("peer set size:"+peerSet.size());
+
                     for (SocketChannel sc : sockchannelSet) {
                         try {
                             String hosttmp = "";
                             int porttmp;
                             if (ConstUtil.MODE.equals(ConstUtil.TCP_MODE)) {
-                                hosttmp = ((InetSocketAddress) sc.getRemoteAddress()).getAddress().toString();
+                                hosttmp = ((InetSocketAddress) sc.getRemoteAddress()).getHostName();
                                 porttmp = ((InetSocketAddress) sc.getRemoteAddress()).getPort();
                             } else {
                                 hosttmp = ((InetSocketAddress)((FakeSocketChannel)sc).getSocketAddress()).getHostName();
                                 porttmp = ((InetSocketAddress)((FakeSocketChannel)sc).getSocketAddress()).getPort();
-
+                                System.out.println("testtest"+hosttmp);
+                                System.out.println("testtest"+((InetSocketAddress)((FakeSocketChannel)sc).getSocketAddress()).getHostString());
                             }
                             System.out.println("host:"+hosttmp+";port:"+porttmp);
+                            System.out.println("host"+host+"port"+port);
                             if (hosttmp.equals(host)
                             && porttmp == port) {
+                                System.out.println(peerSet.size());
                                 peerSet.remove(sc);
                                 sockchannelSet.remove(sc);
-                                eventSelector.removeConnection(sc);
+                                System.out.println(peerSet.size());
+
+                                if (ConstUtil.MODE.equals(ConstUtil.TCP_MODE)) {
+                                    eventSelector.removeConnection(sc);
+                                } else {
+                                    UdpSelector.getInstance().removeConnection(((FakeSocketChannel)sc).getSocketAddress());
+                                }
                                 String content = ProtocolUtils.getClientResponse(ConstUtil.DISCONNECT_PEER_RESPONSE,
                                         host,port,true,"disconnect from peer");
                                 String encrypt = AESKeyManager.AESencrypt(socketChannel, content);

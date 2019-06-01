@@ -36,7 +36,7 @@ public class BytesEventHandlerImpl implements BytesEventHandler {
     public void processRequest(SocketChannel socketChannel, Document document) {
         Map<String, EventDetail> eventDetails = ContextManager.eventContext.get(socketChannel);
 
-        if (socketChannelSet.contains(socketChannel) || eventDetails != null){
+        if (socketChannelSet.contains(socketChannel) && eventDetails != null){
             String pathName = document.getString("pathName");
             long position = document.getLong("position");
             long length = document.getLong("length");
@@ -109,7 +109,7 @@ public class BytesEventHandlerImpl implements BytesEventHandler {
     public void processResponse(SocketChannel socketChannel, Document document) {
         Map<String, EventDetail> eventDetails = ContextManager.eventContext.get(socketChannel);
 
-        if (socketChannelSet.contains(socketChannel) || eventDetails != null){
+        if (socketChannelSet.contains(socketChannel) && eventDetails != null){
             Document fileDescriptor = (Document) document.get("fileDescriptor");
             long fileSize = fileDescriptor.getLong("fileSize");
             long pos = document.getLong("position");
@@ -180,9 +180,9 @@ public class BytesEventHandlerImpl implements BytesEventHandler {
                 } else {
                     // TODO: 如果response为false说明远程peer创建bytes出现问题，此时如果(重传次数<=3)? 重传并把状态机重传次数+1 : closeFilerLoader更改状态机
                     log.info("status is false, need resending");
-                    client.replyRequest(socketChannel, eventDetail.getLastContext(), false);
                     eventDetail.setTimestamp(System.currentTimeMillis());
                     if (eventDetail.getRetransNumber() < ConstUtil.RETRANS_MAXNUM) {
+                        client.replyRequest(socketChannel, eventDetail.getLastContext(), false);
                         eventDetail.setRetransNumber(eventDetail.getRetransNumber() + 1);
                     }
                 }

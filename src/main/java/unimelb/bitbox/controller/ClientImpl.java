@@ -24,6 +24,8 @@ public class ClientImpl implements Client {
         udpSelector = UdpSelector.getInstance();
     }
 
+
+
     @Override
     public SocketChannel sendRequest(String content, String ip, int port) {
         if (ConstUtil.MODE.equals(ConstUtil.TCP_MODE)) {
@@ -39,17 +41,22 @@ public class ClientImpl implements Client {
                 s.wakeup();
                 System.out.println("send1");
                 return socketChannel;
-            } catch (IOException e) {
+            } catch (Exception e) {
                 e.printStackTrace();
                 return null;
             }
         } else if (ConstUtil.MODE.equals(ConstUtil.UDP_MODE)) {
-            UdpMessage udpMessage = new UdpMessage(new InetSocketAddress(ip, port), content);
-            udpSelector.registerWrite(udpMessage);
-            FakeSocketChannel fakeSocketChannel = new FakeSocketChannel(new InetSocketAddress(ip, port));
-            udpSelector.getServerMain().addToHandshakeReqHistory(fakeSocketChannel);
-            eventSelector.getTimeoutManager().put(fakeSocketChannel, new Date());
-            return fakeSocketChannel;
+            try {
+                UdpMessage udpMessage = new UdpMessage(new InetSocketAddress(ip, port), content);
+                udpSelector.registerWrite(udpMessage);
+                FakeSocketChannel fakeSocketChannel = new FakeSocketChannel(new InetSocketAddress(ip, port));
+                udpSelector.getServerMain().addToHandshakeReqHistory(fakeSocketChannel);
+                eventSelector.getTimeoutManager().put(fakeSocketChannel, new Date());
+                return fakeSocketChannel;
+            }catch (Exception e) {
+                e.printStackTrace();
+                return null;
+            }
         } else {
             return null;
         }

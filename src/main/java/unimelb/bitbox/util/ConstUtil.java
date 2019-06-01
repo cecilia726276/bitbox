@@ -1,6 +1,5 @@
 package unimelb.bitbox.util;
 
-import com.sun.org.apache.xpath.internal.operations.Number;
 
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -42,8 +41,8 @@ public class ConstUtil {
     public static final int SYNC_INTERVAL = 1000 * Integer.parseInt(Configuration.getConfigurationValue("syncInterval"));
     public static final int CLIENT_PORT = Integer.parseInt(Configuration.getConfigurationValue("clientPort"));
     public static final String MODE = Configuration.getConfigurationValue("mode");
-    public static final int BLOCKSIZE = (ConstUtil.MODE.equals(ConstUtil.UDP_MODE))? Math.min(Integer.parseInt(Configuration.getConfigurationValue("blockSize")), 8192)
-                                            : Integer.parseInt(Configuration.getConfigurationValue("blockSize"));
+    public static final int BLOCKSIZE = (int) (0.7*((ConstUtil.MODE.equals(ConstUtil.UDP_MODE))? Math.min(Integer.parseInt(Configuration.getConfigurationValue("blockSize")), 8192)
+                                            : Integer.parseInt(Configuration.getConfigurationValue("blockSize"))));
     public static final int UDP_PORT = Integer.parseInt(Configuration.getConfigurationValue("udpPort"));
     public static final String UDP_MODE = "udp";
     public static final String TCP_MODE = "tcp";

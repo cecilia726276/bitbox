@@ -1,10 +1,11 @@
-package unimelb.bitbox.client;
+package unimelb.bitbox;
 
 import org.kohsuke.args4j.CmdLineException;
 import org.kohsuke.args4j.CmdLineParser;
 import unimelb.AES.AESUtil;
 import unimelb.RSA_test.RSAUtil.KeyGenerator;
 import unimelb.RSA_test.RSAUtil.RSAUtil;
+import unimelb.bitbox.client.CmdLineArgs;
 import unimelb.bitbox.message.ProtocolUtils;
 import unimelb.bitbox.util.ConstUtil;
 import unimelb.bitbox.util.Document;
