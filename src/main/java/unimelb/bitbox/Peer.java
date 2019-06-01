@@ -2,37 +2,54 @@ package unimelb.bitbox;
 
 import unimelb.bitbox.controller.EventSelector;
 import unimelb.bitbox.controller.EventSelectorImpl;
-import unimelb.bitbox.util.Configuration;
+import unimelb.bitbox.udpcontroller.UdpSelector;
 import unimelb.bitbox.util.SyncRunner;
 
 import java.io.IOException;
 import java.security.NoSuchAlgorithmException;
-import java.util.logging.Logger;
 
-public class Peer
-{
-    private static Logger log = Logger.getLogger(Peer.class.getName());
-    public static void main( String[] args ) throws IOException, NumberFormatException, NoSuchAlgorithmException
-    {
-        System.setProperty("java.util.logging.SimpleFormatter.format",
-                "[%1$tc] %2$s %4$s: %5$s%n");
-        log.info("BitBox Peer starting...");
-        Configuration.getConfiguration();
+public class Peer {
 
-        ServerMain serverMain = null;
+    public static class testRun implements Runnable {
+
+        @Override
+        public void run() {
+            UdpSelector udpSelector = UdpSelector.getInstance();
+            udpSelector.startServer();
+        }
+    }
+    public static class testRun2 implements Runnable {
+
+        @Override
+        public void run() {
+            EventSelector eventSelector = EventSelectorImpl.getInstance();
+            eventSelector.controllerRunning();
+        }
+    }
+
+    public static void main(String[] args) {
+        Thread thread = new Thread(new Peer.testRun());
+        thread.start();
+        EventSelector eventSelector = EventSelectorImpl.getInstance();
+        UdpSelector udpSelector = UdpSelector.getInstance();
         try {
-            serverMain = new ServerMain();
+            ServerMain serverMain = new ServerMain();
+            udpSelector.setServerMain(serverMain);
+            eventSelector.getFixedThreadPool().execute(new SyncRunner(serverMain));
         } catch (IOException e) {
             e.printStackTrace();
         } catch (NoSuchAlgorithmException e) {
             e.printStackTrace();
         }
-
-        EventSelector eventSelector = EventSelectorImpl.getInstance();
-        eventSelector.getFixedThreadPool().execute(new SyncRunner(serverMain));
-
-        System.out.println("start3");
-
-        eventSelector.controllerRunning();
+        Thread thread2 = new Thread(new Peer.testRun2());
+        thread2.start();
+//        try {
+//            Thread.sleep(10000);
+//        } catch (InterruptedException e) {
+//            e.printStackTrace();
+//        }
+//        UdpMessage udpMessage = new UdpMessage(
+//                new InetSocketAddress("localhost",9963), "I love you thousand times");
+//        udpSelector.registerWrite(udpMessage);
     }
 }

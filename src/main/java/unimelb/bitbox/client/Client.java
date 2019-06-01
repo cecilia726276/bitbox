@@ -14,7 +14,6 @@ import java.net.Socket;
 import java.net.UnknownHostException;
 import java.security.PrivateKey;
 import java.util.List;
-import java.util.Scanner;
 
 
 
@@ -167,20 +166,7 @@ public class Client {
 
     public static void main(String[] args) {
         Client client = new Client();
-        try (InputStream inputStream = new FileInputStream("old_bitboxclient_rsa")) {
-            Scanner s = new Scanner(inputStream).useDelimiter("\\A");
-            String priKey = s.hasNext() ? s.next() : "";
-
-            System.out.println(priKey);
-            //privateKey = RSAUtil.string2PrivateKey(priKey);
-            //privateKey = KeyGenerator.toPrivateKey(priKey);
-            privateKey = KeyGenerator.toPrivateKey("client_rsa.pem"); //privateKey FileName
-        } catch (IOException e) {
-            System.out.println("Could not read file ");
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-
+        privateKey = KeyGenerator.toPrivateKey("client_rsa");
         CmdLineArgs argsBean = new CmdLineArgs();
 
         //Parser provided by args4j
