@@ -24,8 +24,9 @@ import org.bouncycastle.openssl.jcajce.JcaPEMKeyConverter;
 //import org.bouncycastle.util.io.pem.PemReader;
 
 public class KeyGenerator {
-    public static PrivateKey toPrivateKey() {
-        File keyFile = new File("E:/unimelb_cs/distributed systems/project1/bitbox/src/main/java/unimelb/RSA_test/RSAUtil/client_rsa.pem");
+    public static PrivateKey toPrivateKey(String privFileName) { //input the pem file name is ok
+        //File keyFile = new File("E:/unimelb_cs/distributed systems/project1/bitbox/src/main/java/unimelb/RSA_test/RSAUtil/client_rsa.pem");
+        File keyFile = new File(privFileName);
         Security.addProvider(new BouncyCastleProvider());
 
         try{
@@ -212,7 +213,7 @@ public class KeyGenerator {
             String privateFileName = "E:/unimelb_cs/distributed systems/project1/bitbox/src/main/java/unimelb/RSA_test/client_rsa.pem";
 
             //PrivateKey privateKey = toPrivateKey(privateFileName);
-            PrivateKey privateKey = toPrivateKey();
+            PrivateKey privateKey = toPrivateKey("client_rsa.pem");
             System.out.println(privateKey);
 
             //System.out.println(privateKey);
